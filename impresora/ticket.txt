@@ -1,0 +1,14 @@
+
+    ================================
+          REGISTRO DE VISITA
+    ================================
+    Nombre    : ALDO NOEL
+    Apellido  : 8ENITEZ OZORIO
+    Documento : 3758768
+    Fecha     : 25/2/2025, 16:21:07
+    Dependencia: Primer Piso
+    ================================
+    Gracias por su visita.
+    ENTER 2.0 by CCS S.A.
+    ================================
+    

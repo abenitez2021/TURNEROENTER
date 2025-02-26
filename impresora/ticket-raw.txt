@@ -1,0 +1,5 @@
+\x1B\x40     // Reinicia la impresora
+\x1B\x61\x01 // Alinea al centro
+PRUEBA DE IMPRESIÓN
+\x1B\x64\x02 // Salto de línea
+\x1B\x69     // Corte de papel
