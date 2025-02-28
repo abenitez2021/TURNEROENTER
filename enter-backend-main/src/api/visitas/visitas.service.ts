@@ -12,6 +12,8 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 
 
+const PDFDocument = require('pdfkit');
+
 
 @Injectable()
 export class VisitasService {
@@ -211,40 +213,92 @@ export class VisitasService {
 
 
 
+    /**
+     * 📄 Generar y enviar el ticket de impresión en PDF
+     */
     private async printTicket(visitData: any): Promise<void> {
-        const filePath = "C:\\ENTER\\CONRUTH\\impresora\\ticket.txt";
-
-        console.log("📌 Datos recibidos para imprimir:", visitData);
-
-        // Generar un ticket más estético utilizando el ancho completo
-        const text = `
-    ================================
-          REGISTRO DE VISITA
-    ================================
-    Nombre    : ${visitData.nombre}
-    Apellido  : ${visitData.apellido}
-    Documento : ${visitData.nro_documento}
-    Fecha     : ${new Date().toLocaleString()}
-    Dependencia: ${visitData.dependencia || 'NO ESPECIFICADA'}
-    ================================
-    Gracias por su visita.
-    ENTER 2.0 by CCS S.A.
-    ================================
-    `;
-
-        // Guardar el texto en el archivo
-        fs.writeFileSync(filePath, text, 'utf8');
-
-        // Ejecutar el comando `notepad /p` para imprimir
-        exec(`notepad /p "${filePath}"`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`❌ Error al imprimir: ${error.message}`);
-                return;
-            }
-            console.log("✅ Impresión enviada correctamente.");
+        const filePath = `C:\\ENTER\\TURNEROENTER\\impresora\\reporte.pdf`;
+        const printerName = `POS80`; // Nombre exacto de la impresora
+        const sumatraPath = `C:\\Users\\aldo-\\AppData\\Local\\SumatraPDF\\SumatraPDF.exe`; // Ruta de SumatraPDF
+    
+        console.log("📌 Datos recibidos para impresión:", visitData);
+    
+        // Crear documento PDF con tamaño exacto y márgenes definidos
+        const doc = new PDFDocument({
+            size: [226, 226], // 80mm x 80mm en puntos
+            margins: { top: 5, left: 5, right: 5, bottom: 5 }
+        });
+    
+        // Guardar PDF en archivo
+        const stream = fs.createWriteStream(filePath);
+        doc.pipe(stream);
+    
+        // 🖼️ Agregar el logo si existe
+        const logoPath = "C:\\ENTER\\TURNEROENTER\\impresora\\logo.png";
+        if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, { width: 180, align: "center" }).moveDown();
+        }
+    
+        // 📌 Espacio de logos
+        doc.font("Helvetica-Bold")
+            .fontSize(12)
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .moveDown(0.5); // Espacio reducido para mejor organización
+    
+        // 📌 Título del ticket
+        doc.font("Helvetica-Bold")
+            .fontSize(12)
+            .text("REGISTRO DE VISITA", { align: "center" })
+            .moveDown(0.5); // Espacio reducido para mejor organización
+    
+        // ℹ️ Datos de la visita
+        doc.font("Helvetica-Bold").fontSize(9).text("Nombre: ", { continued: true });
+        doc.font("Helvetica").text(`${visitData.nombre}`);
+    
+        doc.font("Helvetica-Bold").text("Apellido: ", { continued: true });
+        doc.font("Helvetica").text(`${visitData.apellido}`);
+    
+        doc.font("Helvetica-Bold").text("Documento: ", { continued: true });
+        doc.font("Helvetica").text(`${visitData.nro_documento}`);
+    
+        doc.font("Helvetica-Bold").text("Fecha: ", { continued: true });
+        doc.font("Helvetica").text(`${new Date().toLocaleString()}`);
+    
+        doc.font("Helvetica-Bold").text("Dependencia: ", { continued: true });
+        doc.font("Helvetica").text(`${visitData.dependencia || 'NO ESPECIFICADA'}`);
+    
+        doc.moveDown(0.5); // Espacio antes del mensaje final
+    
+        // 🔹 Mensaje final
+        doc.font("Helvetica")
+            .fontSize(8)
+            .text("Gracias por su visita.", { align: "center" })
+            .text("ENTER 2.0 by CCS S.A.", { align: "center" });
+    
+        doc.end();
+    
+        // 📤 Esperamos a que termine de generar el PDF antes de imprimirlo
+        stream.on("finish", () => {
+            console.log("✅ PDF generado correctamente.");
+    
+            // 🔥 Enviar el PDF a la impresora POS usando SumatraPDF
+            const printCommand = `powershell -Command Start-Process -FilePath '${sumatraPath}' -ArgumentList '-print-to "${printerName}" -print-settings fit "${filePath}"' -NoNewWindow -Wait`;
+    
+            exec(printCommand, (error) => {
+                if (error) {
+                    console.error(`❌ Error al imprimir: ${error.message}`);
+                    return;
+                }
+                console.log("✅ Impresión enviada correctamente.");
+            });
         });
     }
-
+    
 
     //Ver imagen foto perfil del documento
     async verDocumentoFoto(idPuesto: number, imagen: string) {

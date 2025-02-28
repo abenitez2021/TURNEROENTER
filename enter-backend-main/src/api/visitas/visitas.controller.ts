@@ -14,6 +14,8 @@ import { VisitasListarDto } from './dto/listar.dto';
 import { VisitasSalidaDto } from './dto/salida.dto';
 import { VisitasService } from './visitas.service';
 
+const PDFDocument = require('pdfkit');
+
 @Controller('visitas')
 export class VisitasController {
 
