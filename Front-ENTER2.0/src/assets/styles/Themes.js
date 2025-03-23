@@ -1,7 +1,8 @@
-import { createMuiTheme } from "@material-ui/core/styles";
-import { esES } from "@material-ui/core/locale";
 
-export const darkTheme = createMuiTheme(
+import { esES } from "@material-ui/core/locale";
+import { createTheme } from '@material-ui/core/styles';
+
+export const darkTheme = createTheme(
 
   {
     body: {
@@ -72,7 +73,7 @@ export const darkTheme = createMuiTheme(
   esES
 );
 
-export const lightTheme = createMuiTheme(
+export const lightTheme = createTheme(
   {
     body: {
       background: "#f2f5f9"

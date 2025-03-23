@@ -20,7 +20,7 @@ export function notificacionEliminar(info, url) {
         timer: 1500,
       });
     }
-    
+
   });
 }
 
@@ -54,7 +54,7 @@ export function notificacionAlerta(info) {
     title: "¡ATENCIÓN!",
     text: info,
     showCloseButton: true,
-    showConfirmButton:false
+    showConfirmButton: false
 
   })
 }
@@ -62,7 +62,7 @@ export function notificacionAlerta(info) {
 export function notificacionWarning(info, url) {
   SweetAlert.fire({
     icon: "warning",
-    
+
     title: "¡ATENCIÓN!",
     text: info,
     showCloseButton: true,
@@ -101,8 +101,7 @@ export function alertaAceptarCancelar({ text }) {
   });
 }
 
-export function alertWarningError({ data }) {
-  const level = data.level;
+export function alertWarningError({ message = "Ocurrió un error", level = "error", errors = [] }) {
   const content = document.createElement("div");
   const list = document.createElement("ul");
   const mensaje = document.createElement("p");
@@ -112,19 +111,18 @@ export function alertWarningError({ data }) {
   content.appendChild(mensaje);
   content.appendChild(list);
 
-  mensaje.append(data.message);
-  data.errors && data.errors.map((item) => {
-    var x = document.createElement("li");
-    var t = document.createTextNode(item);
-    x.append(t);
+  mensaje.append(message);
+  errors.forEach((item) => {
+    const x = document.createElement("li");
+    x.appendChild(document.createTextNode(item));
     list.appendChild(x);
   });
 
   return SweetAlert.fire({
-    title: level === "WARNING" ? "¡ATENCIÓN!" : "¡OCURRIO UN ERROR!",
+    title: level === "warning" ? "¡ATENCIÓN!" : "¡OCURRIÓ UN ERROR!",
     showCancelButton: true,
     html: content,
-    icon: level === "WARNING" ? "warning" : "error",
+    icon: level === "warning" ? "warning" : "error",
     cancelButtonColor: "#43a047",
     showConfirmButton: false,
     cancelButtonText: "OK",

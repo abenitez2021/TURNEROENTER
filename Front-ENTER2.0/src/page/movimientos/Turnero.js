@@ -53,14 +53,7 @@ import frontal from "../../assets/images/ci_frontal.png";
 import dorsal from "../../assets/images/ci_dorsal.png";
 import foto from "../../assets/images/avatar.png"
 
-const initFiltro = {
-  fechaDesde: null,
-  fechaHasta: null,
-  idVisita: null,
-  marcacion: null,
-  documento: null,
-  idDependencia: null,
-};
+
 
 const inicialValue = {
   codigoTarjeta: "",
@@ -72,7 +65,7 @@ const inicialValue = {
   idDependencia: "",
   codigoNacionalidad: "",
   nacionalidad: "",
-  fechaNacimiento: "",
+
   fechaExpiracionDocumento: "",
   fechaEmision: "",
   sexo: "",
@@ -87,7 +80,7 @@ const inicialValue = {
   DeviceType: "",
   DeviceNumber: "",
   DeviceLabelNumber: "",
-  descripcion: "", //DESCRIPCION FUNCIONANDO HASTA AQUI
+
 };
 
 const inicialScannerValue = {
@@ -106,7 +99,7 @@ const inicialScannerValue = {
   sexo: null,
   estadoCivil: null,
   identityCardNumber: null,
-  descripcion: null, //Primera edicion 
+
   info: {
     TransactionID: null,
     DateTime: null,
@@ -121,10 +114,7 @@ const inicialScannerValue = {
 };
 
 // Variables para almacenar valores temporales
-const inicialDatosAdicionales = {
-  idDependencia: "",
-  codigoTarjeta: "",
-};
+
 
 export default function ListaAccesoVisitantesDos() {
   const history = useHistory();
@@ -137,25 +127,83 @@ export default function ListaAccesoVisitantesDos() {
   const [dependenciaList, setDependenciaList] = useState({
     content: [],
   });
+  const [tramiteList, setTramiteList] = useState({
+    content: [],
+  });
   const [isLoadingEstado, setIsLoadingEstado] = useState(false);
   const [isLoadingComercio, setIsLoadingComercio] = useState(false);
   const [quitarFitro, setQuitarFiltro] = useState(false);
 
   //const [tipoDocumento, setTipoDocumento] = useState("");
-  const [filtro, setFiltro] = useState(initFiltro);
+
 
   const [visitanteAcceso, setVisitanteAcceso] = useState(inicialValue);
   const [visita, setVisita] = useState(inicialScannerValue);
 
   const [isLoadingDependencia, setIsLoadingDependencia] = useState(false);
+  const [isLoadingTramite, setIsLoadingTramite] = useState(false);
   const [dependencia, setDependencia] = useState({});
+  const [tramite, setTramite] = useState({});
   const [socketConectado, setSocketConectado] = useState(true);
 
+
+
+
+
   useEffect(() => {
-    getPedido();
     getDependencia();
+    getTramites();
     iniciarSocket();
   }, []);
+
+
+  const getDependencia = async () => {
+    setIsLoadingDependencia(true);
+    let url = "dependencias/listar/";
+    try {
+      const response = await axios.post(url);
+      let status = response.status;
+      if (status === 200) {
+        const dependenciaResponse = response.data;
+        setDependenciaList({
+          ...dependenciaList,
+          content: dependenciaResponse?.result,
+        });
+        console.log("esto hay en dependencia", dependenciaResponse?.result);
+        setIsLoadingDependencia(false);
+      }
+    } catch (error) {
+      setIsLoadingDependencia(false);
+      if (error.response) {
+        alertWarningError(error.response);
+      }
+    }
+  };
+
+
+  const getTramites = async () => {
+    setIsLoadingTramite(true);
+    let url = "tramites/listar";
+    try {
+      const response = await axios.get(url);
+      let status = response.status;
+      if (status === 200) {
+        const tramiteResponse = response.data;
+        console.log("Trámites obtenidos:", tramiteResponse); // 🔹 Revisa en consola
+        setTramiteList({
+          ...tramiteList,
+          content: tramiteResponse, // 🔹 Corregí cómo se asignan los datos
+        });
+        setIsLoadingTramite(false);
+      }
+    } catch (error) {
+      setIsLoadingTramite(false);
+      if (error.response) {
+        alertWarningError(error.response);
+      }
+    }
+  };
+
 
   const addHeader = (doc) => {
     const imageWidth = 40; // Ancho de la imagen
@@ -187,160 +235,7 @@ export default function ListaAccesoVisitantesDos() {
     doc.addImage(Logo, "PNG", imageX, imageY, imageWidth, imageHeight);
   };
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
 
-    const addHeader = (doc) => {
-      // Función para añadir encabezado al PDF
-      const imageWidth = 40;
-      const imageHeight = 20;
-      const textBackgroundHeight = 20;
-      const textBackgroundX = 55;
-      const textBackgroundY = 10;
-      const textBackgroundWidth = doc.internal.pageSize.getWidth();
-      const imageX = 10;
-      const imageY = 10;
-
-      doc.setFillColor(70, 130, 180); // Violeta
-      doc.rect(
-        textBackgroundX,
-        textBackgroundY,
-        textBackgroundWidth,
-        textBackgroundHeight,
-        "F"
-      );
-      doc.setTextColor(255, 255, 255); // Blanco
-      doc.setFontSize(16);
-
-      const textX = 60;
-      const textY = textBackgroundY + textBackgroundHeight / 2 + 6;
-      const text = "REGISTRO DE ACCESOS";
-      doc.text(text, textX, textY);
-
-      doc.addImage(Logo, "PNG", imageX, imageY, imageWidth, imageHeight);
-    };
-
-    const totalRows = data.content.length;
-    const rowsPerPage = 25;
-    let currentPage = 1;
-    let startIndex = 0;
-
-    const tableHeader = [
-      "Nombre",
-      "Apellido",
-      "Nro. Documento",
-      "Entrada",
-      "Salida",
-      "Pais",
-      "Depedencia",
-      "Tarjeta Nro.",
-      "Observacion",
-    ];
-
-    const tableStyles = {
-      lineWidth: 0.3,
-      lineColor: [0, 0, 0],
-      cellPadding: 2,
-    };
-
-    const headerStyles = {
-      fillColor: [70, 130, 180],
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-    };
-
-    while (startIndex < totalRows || currentPage === 1) {
-      if (currentPage > 1) {
-        doc.addPage();
-      }
-
-      addHeader(doc);
-
-      const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
-      const tableData = [];
-      for (let i = startIndex; i < endIndex; i++) {
-        const row = data.content[i];
-        if (row) {
-          tableData.push([
-            row.nombre || "",
-            row.apellido || "",
-            row.documento || "",
-            row.entrada || "",
-            row.salida || "",
-            row.nacionalidad || "",
-            row.dependencia || "",
-            row.codigoTarjeta || "",
-            row.Observacion || "",
-          ]);
-        } else {
-          tableData.push(["", "", "", "", "", "", "", "", ""]);
-        }
-      }
-
-      doc.autoTable({
-        head: [tableHeader],
-        body: tableData,
-        startY: currentPage === 1 ? 40 : 40,
-        theme: "grid",
-        styles: tableStyles,
-        headerStyles: headerStyles,
-      });
-
-      startIndex += rowsPerPage;
-      currentPage++;
-
-      doc.setPage(currentPage);
-      doc.setDrawColor(0);
-      doc.setLineWidth(0.5);
-      doc.line(
-        10,
-        doc.internal.pageSize.getHeight() - 20,
-        doc.internal.pageSize.getWidth() - 20,
-        doc.internal.pageSize.getHeight() - 20
-      );
-    }
-
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      const pageNumberString = `Página ${i} de ${totalPages}`;
-      const printedDateString = `Fecha de impresión: ${new Date().toLocaleString()}`;
-      const footerX = 10;
-      const footerY = doc.internal.pageSize.getHeight() - 10;
-      doc.setFontSize(8);
-      doc.setTextColor(0, 0, 0);
-      doc.text(pageNumberString, footerX, footerY - 5, { align: "left" });
-      doc.text(printedDateString, footerX, footerY, { align: "left" });
-    }
-
-    const nombreArchivo = `REGISTRO-ACCESOS.pdf`;
-    doc.save(nombreArchivo);
-  };
-  const getFiltro = async (props) => {
-    setData({ ...data, content: [] });
-    setIsLoading(true);
-    setQuitarFiltro(true);
-
-    let url = "visitas/listar/";
-    try {
-      const response = await axios.post(url, filtro);
-      let status = response.status;
-      if (status === 200) {
-        const filtroResponse = response.data;
-        console.log(filtroResponse);
-        setData({
-          ...data,
-          content: filtroResponse?.result,
-        });
-        setIsLoading(false);
-      }
-    } catch (error) {
-      setIsLoading(false);
-      if (error.response) {
-        alertWarningError(error.response);
-      }
-    }
-  };
 
   const getObtenerMarcación = async (idPuesto) => {
     setIsLoading(true);
@@ -426,35 +321,11 @@ export default function ListaAccesoVisitantesDos() {
     }
   };
 
-  const getPedido = async () => {
-    setIsLoading(true);
-    setQuitarFiltro(false);
-    setFiltro(initFiltro);
-    let url = "visitas/listar/";
-    try {
-      const response = await axios.post(url, initFiltro);
-      let status = response.status;
-      if (status === 200) {
-        const pedidos = response.data;
-        setData({
-          ...data,
-          content: pedidos?.result,
-        });
-
-        setIsLoading(false);
-      }
-    } catch (error) {
-      setIsLoading(false);
-      if (error.response) {
-        alertWarningError(error.response);
-      }
-    }
-  };
 
   const getLimpiarLecturaFisica = async () => {
     let url = "visitas/eliminar-archivos-sdk/";
     try {
-      const response = await axios.post(url, initFiltro);
+      const response = await axios.post(url);
       let status = response.status;
       if (status === 200) {
       }
@@ -465,28 +336,6 @@ export default function ListaAccesoVisitantesDos() {
     }
   };
 
-  const getDependencia = async () => {
-    setIsLoadingDependencia(true);
-    let url = "dependencias/listar/";
-    try {
-      const response = await axios.post(url);
-      let status = response.status;
-      if (status === 200) {
-        const dependenciaResponse = response.data;
-        setDependenciaList({
-          ...dependenciaList,
-          content: dependenciaResponse?.result,
-        });
-        console.log("esto hay en dependencia", dependenciaResponse?.result);
-        setIsLoadingDependencia(false);
-      }
-    } catch (error) {
-      setIsLoadingDependencia(false);
-      if (error.response) {
-        alertWarningError(error.response);
-      }
-    }
-  };
 
   const onSelectDependencia = (e, value) => {
     console.log("esto hay en dependencia", dependencia);
@@ -502,6 +351,24 @@ export default function ListaAccesoVisitantesDos() {
     if (value === null) {
       setDependencia({});
       let copyInput = { ...visitanteAcceso, idDependencia: 0 };
+      setVisitanteAcceso(copyInput);
+    }
+  };
+
+  const onSelectTramite = (e, value) => {
+    console.log("esto hay en tramites", tramite);
+    if (value && value?.id !== tramite?.id) {
+      setTramite(value);
+      let copyInput = {
+        ...visitanteAcceso,
+        id: value?.id,
+      };
+      setVisitanteAcceso(copyInput);
+    }
+
+    if (value === null) {
+      setTramite({});
+      let copyInput = { ...visitanteAcceso, id: 0 };
       setVisitanteAcceso(copyInput);
     }
   };
@@ -555,45 +422,66 @@ export default function ListaAccesoVisitantesDos() {
       nacionalidad: nombreNacionalidad,
     }));
   };
-  const handleChangeDescripcion = (event) => {
-    let copyInput = {
-      ...visitanteAcceso,
-      descripcion: event.target.value.toUpperCase(), // Convertimos a mayúsculas
+
+  const crearTurno = async () => {
+    let urlTurno = "http://localhost:7001/api/turnos/crear";
+
+    // ⏳ Formatear la fecha actual
+    const fechaHora = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+    const turnoData = {
+      id_tramite: visitanteAcceso.idTramite,  // ✅ Usa el trámite seleccionado
+      nro_documento: visitanteAcceso.documento,
+      nombre: visitanteAcceso.nombre,
+      apellido: visitanteAcceso.apellido,
+      fecha_hora: fechaHora,
+      estado: "PENDIENTE",
+      prioridad: "MEDIA",
+      box: 2, // ✅ Puedes ajustar el box según la lógica de tu app
     };
-    setVisitanteAcceso(copyInput);
+    console.log("Hay en turnos", turnoData);
+    try {
+      const response = await axios.post(urlTurno, turnoData);
+
+      if (response.status === 200 || response.status === 201) {
+        console.log("✅ Turno creado exitosamente:", response.data);
+        swal("¡Turno creado exitosamente!", {
+          icon: "success",
+          buttons: false,
+          timer: 1500
+        });
+      } else {
+        console.error("🚨 Error en la creación del turno:", response.data);
+        notificacionAlerta("No se pudo crear el turno.");
+      }
+    } catch (error) {
+      console.error("❌ Error en la solicitud al backend:", error);
+      alertWarningError("Error al registrar el turno.");
+    }
   };
 
-  const handleChangeCodigoTarjeta = (event) => {
-    let copyInput = {
-      ...visitanteAcceso,
-      codigoTarjeta: event.target.value.toUpperCase(),
-    };
-    setVisitanteAcceso(copyInput);
-  };
 
-  // Función para actualizar los valores de visitanteAcceso - DEPRECADO
-  // const actualizarVisitanteAcceso = () => {
-  //   setVisitanteAcceso({
-  //     ...visitanteAcceso,
-  //     idDependencia: datosAdicionales.idDependencia,
-  //     codigoTarjeta: datosAdicionales.codigoTarjeta
-  //   });
-  // };
+
+
 
   const handleGuardar = async () => {
     //actualizarVisitanteAcceso();
 
     console.log("Datos DEPOIS de actualizar", visitanteAcceso);
 
-    if (visitanteAcceso.idDependencia === "") {
+    if (visitanteAcceso.idTramite === "") {
       // Si el idDependencia está vacío, muestra un mensaje de error
-      swal("Es necesario elegir una dependencia", {
+      swal("Es necesario ingresar un Tramite", {
         icon: "warning",
         buttons: false,
         timer: 1500,
       });
       return; // Detiene la ejecución de la función
     }
+
+
+
+    visitanteAcceso.idDependencia = 15;
     if (visitanteAcceso.nacionalidad === "") {
       // Si el idDependencia está vacío, muestra un mensaje de error
       swal("Es necesario ingresar una nacionalidad", {
@@ -668,7 +556,7 @@ export default function ListaAccesoVisitantesDos() {
           getLimpiarLecturaFisica();
           setDependencia({});
           //setTipoDocumento("");
-          getPedido();
+
           setVisitanteAcceso(inicialValue);
           setVisita(inicialScannerValue);
           console.log("ESTO ES VISITA DESPUES DE BORRAR ", visita);
@@ -678,7 +566,9 @@ export default function ListaAccesoVisitantesDos() {
             buttons: false,
             timer: 1500,
           });
-          // history.goBack();
+          // 2️⃣ **Ahora creamos el turno**
+          await crearTurno();
+
         } else {
           setIsLoading(false);
           notificacionAlerta(response.data?.message);
@@ -692,13 +582,7 @@ export default function ListaAccesoVisitantesDos() {
     }
   };
 
-  const handleFechaDesde = (date) => {
-    setFiltro({ ...filtro, fechaDesde: date });
-  };
 
-  const handleFechaHasta = (date) => {
-    setFiltro({ ...filtro, fechaHasta: date });
-  };
 
   //CAMBIOS PARA SOCKET
 
@@ -742,7 +626,7 @@ export default function ListaAccesoVisitantesDos() {
       const contenido = JSON.parse(message.body);
       //atriburtos: correcto = S o N, conPayload = S o N, payload, idPuesto, fechaHora,
 
-      if (contenido.correcto != "S") {
+      if (contenido.correcto !== "S") {
         //alert("Error de contenido de mensaje de socket: ");
         return;
       }
@@ -753,7 +637,7 @@ export default function ListaAccesoVisitantesDos() {
       //   timer: 2000
       // });
 
-      if (contenido.conPayload == "S") {
+      if (contenido.conPayload === "S") {
         //ya trae la info en el  payload
         //se puede procesar para no llamar mas a la API
         getObtenerMarcación(Number(contenido.idPuesto));
@@ -794,8 +678,8 @@ export default function ListaAccesoVisitantesDos() {
                 inputVariant="outlined"
                 label="Desde"
                 format="dd-MM-yyyy"
-                value={filtro.fechaDesde}
-                onChange={handleFechaDesde}
+
+
                 fullWidth
                 TextFieldComponent={(props) => (
                   <TextField
@@ -816,8 +700,7 @@ export default function ListaAccesoVisitantesDos() {
                 inputVariant="outlined"
                 label="Hasta"
                 format="dd-MM-yyyy"
-                value={filtro.fechaHasta}
-                onChange={handleFechaHasta}
+
                 fullWidth
                 TextFieldComponent={(props) => (
                   <TextField
@@ -839,7 +722,7 @@ export default function ListaAccesoVisitantesDos() {
               startIcon={<AddIcon />}
               onClick={() => {
                 console.log("Botón Filtrar clickeado");
-                getFiltro();
+
               }}
             >
               Filtrar
@@ -851,7 +734,7 @@ export default function ListaAccesoVisitantesDos() {
                   size="small"
                   className={classes.iconButton}
                   onClick={() => {
-                    getPedido();
+
                   }}
                 >
                   <CloseIcon style={{ color: red[600] }} />
@@ -864,103 +747,6 @@ export default function ListaAccesoVisitantesDos() {
     </div>
   );
 
-  const columns = [
-    {
-      title: "ID VISITA",
-      field: "idVisita",
-      width: "2%",
-      // hidden: true,
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "FOTO",
-      field: "urlFoto",
-      width: "5%",
-      render: (rowData) => {
-        if (rowData?.urlFoto === null) {
-          return (
-            <img
-              style={{ height: 50, width: 45, borderRadius: "10%" }}
-              src={`${AvatarIcon}`}
-            />
-          );
-        } else {
-          let imag = rowData?.foto?.split(",");
-          return (
-            <img
-              style={{ height: 50, width: 45, borderRadius: "10%" }}
-              src={`${rowData?.urlFoto}`}
-              onError={(e) => {
-                e.target.src = AvatarIcon; // Establece el AvatarIcon si la carga de la imagen falla
-              }}
-            />
-          );
-        }
-      },
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-
-    {
-      title: "ENTRADA",
-      field: "entrada",
-      width: "2%",
-      render: (rowData) => rowData.entrada || "-",
-      headerStyle: { fontWeight: "bold", textAlign: "center" }, //titulo en negrita y centrado
-    },
-    {
-      title: "SALIDA",
-      field: "salida",
-      width: "2%",
-      render: (rowData) => rowData.salida || "-",
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "NOMBRE",
-      field: "nombre",
-      width: "10%",
-      render: (rowData) => rowData.nombre.toUpperCase().toUpperCase(),
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "APELLIDO",
-      field: "apellido",
-      width: "10%",
-      render: (rowData) => rowData.apellido.toUpperCase().toUpperCase(),
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "NRO DOCUMENTO",
-      field: "documento",
-      width: "5%",
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "NACIONALIDAD",
-      field: "nacionalidad",
-      width: "10%",
-      render: (rowData) => rowData.nacionalidad.toUpperCase(),
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "DEPENDENCIA",
-      field: "dependencia",
-      width: "10%",
-      render: (rowData) => rowData.dependencia.toUpperCase(),
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "TARJETA NRO.",
-      field: "codigoTarjeta",
-      width: "10%",
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-    {
-      title: "OBSERVACION.",
-      field: "Observacion",
-      width: "10%",
-      headerStyle: { fontWeight: "bold", textAlign: "center" },
-    },
-  ];
   const options = {
     filtering: false,
     exportButton: false,
@@ -1007,7 +793,7 @@ export default function ListaAccesoVisitantesDos() {
 
       let status = response.status;
       if (status === 200) {
-        getPedido()();
+
         swal("¡OPERACIÓN EXITOSA!", {
           icon: "success",
           buttons: false,
@@ -1022,42 +808,7 @@ export default function ListaAccesoVisitantesDos() {
     }
   };
 
-  const handleDarSalidaVisitante = (event, props) => {
-    event.stopPropagation();
-    swal({
-      title: "¡ATENCIÓN!",
-      text: `¿Deseas marcar la salida a ${props.data?.nombre} ${props.data?.apellido}?`,
-      icon: "warning",
-      buttons: true,
-      buttons: ["Cancelar", "Confirmar"],
-      confirmButtonColor: "#43a047",
-    }).then((willDelete) => {
-      if (willDelete) {
-        marcarSalidaVisitante(props.data);
-      }
-    });
-  };
 
-  const childrenAccions = (props) => {
-    return (
-      <>
-        {props.data?.salida == null ? (
-          <>
-            <Box pl={1} pr={1}>
-              <Chip
-                onClick={(e) => handleDarSalidaVisitante(e, props)}
-                label="Dar salida"
-                variant="contened"
-                color="secondary"
-              />
-            </Box>
-          </>
-        ) : (
-          <Box pl={1} pr={1}></Box>
-        )}
-      </>
-    );
-  };
 
   return (
     <>
@@ -1109,7 +860,7 @@ export default function ListaAccesoVisitantesDos() {
                   size="small"
                   style={{ marginRight: 5 }}
                   onClick={() => {
-                    //handleGuardar();
+                    handleGuardar();
                     getObtenerMarcación();
                   }}
                 >
@@ -1202,8 +953,8 @@ export default function ListaAccesoVisitantesDos() {
                           }}
                         />
                         <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                   
-                  </div>
+
+                        </div>
 
 
 
@@ -1358,26 +1109,6 @@ export default function ListaAccesoVisitantesDos() {
                       </TextField>
                     </div>
 
-                    <div style={{ marginTop: 10 }}>
-                      <TextField
-                        size="small"
-                        autoFocus
-                        variant="outlined"
-                        id="codigoTarjeta"
-                        name="codigoTarjeta"
-                        label="Código Tarjeta Visitante"
-                        value={visitanteAcceso.codigoTarjeta}
-                        onChange={(value) => handleChangeCodigoTarjeta(value)}
-                        type="text"
-                        fullWidth
-                        InputLabelProps={{
-                          style: { color: "#333" },
-                        }}
-                        InputProps={{
-                          style: { color: "#555" },
-                        }}
-                      />
-                    </div>
 
                     <div
                       style={{
@@ -1389,15 +1120,11 @@ export default function ListaAccesoVisitantesDos() {
                       {userContext.state.rol === "Guardia" &&
                         userContext.state.marcacion === "Entrada" ? (
                         <Button
-                          style={{
-                            width: "100%",
-                            backgroundColor: "rgb(139, 0, 139)",
-                          }}
+                          style={{ width: "100%", backgroundColor: userContext.state.marcacion === "Entrada" ? "rgb(139, 0, 139)" : "gray" }}
                           color="primary"
                           variant="contained"
-                          onClick={() => {
-                            handleGuardar();
-                          }}
+                          onClick={handleGuardar}
+                          disabled={userContext.state.marcacion !== "Entrada"}
                         >
                           Procesar Entrada
                         </Button>
@@ -1458,6 +1185,7 @@ export default function ListaAccesoVisitantesDos() {
                       xl={12}
                       style={{ marginTop: 10 }}
                     >
+                      {/*}
                       <Autocomplete
                         id="idDependencia"
                         size="small"
@@ -1479,31 +1207,47 @@ export default function ListaAccesoVisitantesDos() {
                         filterSelectedOptions
                         renderInput={(params) => (
                           <TextField
-                            {...params}
+                            size="small"
                             variant="outlined"
-                            label="Dependencia"
-                            name="dependencia"
-                            InputLabelProps={{
-                              style: { color: "#333" },
-                            }}
-                            InputProps={{
-                              style: { color: "#555" },
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {isLoadingDependencia ? (
-                                    <CircularProgress
-                                      color="primary"
-                                      size={20}
-                                    />
-                                  ) : null}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
+                            fullWidth
+                            label="Dependencia seleccionada"
+                            value={dependencia?.nombre || ""}
+                            InputLabelProps={{ style: { color: "#333" } }}
+                            InputProps={{ style: { color: "#555" } }}
+                            disabled
+                          />
+
+                        )}
+                      />
+                      */}
+                      <Autocomplete
+                        id="idTramite"
+                        size="small"
+                        value={tramite} // ✅ Ahora está correctamente vinculado
+                        onChange={onSelectTramite}
+                        options={tramiteList?.content}
+                        getOptionLabel={(option) => option.nombre ? option.nombre : ""}
+                        renderOption={(option) => (
+                          <React.Fragment>{option?.nombre}</React.Fragment>
+                        )}
+                        isOptionDisabled={(option) => socketConectado}
+                        loading={isLoadingTramite}
+                        filterSelectedOptions
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            size="small"
+                            variant="outlined"
+                            fullWidth
+                            label="Trámite seleccionado"
+                            value={tramite?.nombre || ""} // ✅ Asegura que se refleje el trámite seleccionado
+                            InputLabelProps={{ style: { color: "#333" } }}
+                            InputProps={{ style: { color: "#555" } }}
+                            disabled
                           />
                         )}
                       />
+
                     </Grid>
 
                     <Grid
@@ -1514,28 +1258,66 @@ export default function ListaAccesoVisitantesDos() {
                       xl={12}
                       style={{ marginTop: 10 }}
                     >
-                      <div style={{ marginTop: 10 }}>
-                        <TextField
-                          size="small"
-                          autoFocus
-                          variant="outlined"
-                          id="descripcion"
-                          name="descripcion"
-                          label="Observacion"
-                          value={visitanteAcceso.descripcion} // Cambiar al valor de descripción
-                          onChange={handleChangeDescripcion} // Cambiar a la función que maneja el cambio de descripción
-                          type="text"
-                          fullWidth
-                          InputLabelProps={{
-                            style: { color: "#333" },
-                          }}
-                          InputProps={{
-                            style: { color: "#555" },
-                          }}
-                        />
-                      </div>
+
                     </Grid>
                   </Grid>
+
+                  {// Botones para dependencias que despues ya no se usan 
+                  }
+
+                  {/* Botones de dependencias 
+                  <Grid container spacing={2} style={{ marginBottom: 10 }}>
+                    {dependenciaList?.content?.map((dep) => (
+                      <Grid item key={dep.idDependencia}>
+                        <Button
+                          variant={visitanteAcceso.idDependencia === dep.idDependencia ? "contained" : "outlined"}
+                          color="primary"
+                          onClick={() => {
+                            setDependencia(dep);
+                            setVisitanteAcceso((prev) => ({
+                              ...prev,
+                              idDependencia: dep.idDependencia,
+                            }));
+                          }}
+                        >
+                          {dep.nombre}
+                        </Button>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  */}
+                  {/* Botones de Tramites organizados en 3 columnas */}
+                  <Grid container spacing={2} style={{ marginBottom: 10 }}>
+                    {tramiteList?.content?.length > 0 ? (
+                      tramiteList.content.map((tra) => (
+                        <Grid item xs={12} sm={4} md={4} key={tra.id}> {/* ✅ Organizado en 3 columnas */}
+                          <Button
+                            fullWidth
+                            variant={visitanteAcceso.idTramite === tra.id ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => {
+                              setTramite(tra); // ✅ Actualiza el trámite seleccionado
+                              setVisitanteAcceso((prev) => ({
+                                ...prev,
+                                idTramite: tra.id, // ✅ Guarda el id del trámite seleccionado
+                                tramiteNombre: tra.nombre, // ✅ Guarda el nombre del trámite seleccionado
+                              }));
+                            }}
+                          >
+                            {tra.nombre}
+                          </Button>
+                        </Grid>
+                      ))
+                    ) : (
+                      <Grid item xs={12}>
+                        <Typography variant="body2" color="textSecondary">
+                          No hay trámites disponibles.
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+
+
                 </Grid>
               }
               {userContext.state.rol === "Administrador" && (
@@ -1546,44 +1328,8 @@ export default function ListaAccesoVisitantesDos() {
             </CardContent>
           </Card>
 
-          <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-            <List>
-              <ListItem>
-                <ListItemText
-                  primary="REGISTRO DE ACCESOS"
-                  secondary="Visualiza los accesos registrados"
-                />
-              </ListItem>
-            </List>
-            {userContext.state.rol === "Administrador" && (
-              <Box pl={1} pr={1} pb={2}>
-                <Chip
-                  onClick={() => handleExportPDF()}
-                  label="Exportar Datos"
-                  variant="outlined"
-                  color="primary"
-                />
-              </Box>
-            )}
-          </Grid>
 
-          <Grid container spacing={2} justify="center" alignItems="center">
-            <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-              <MakeTables
-                isLoading={isLoading}
-                title={title}
-                columns={columns}
-                data={data.content}
-                actions={actions}
-                classes={classes}
-                options={options}
-                componentsAssets={{
-                  classes,
-                  childrenAccions,
-                }}
-              />
-            </Grid>
-          </Grid>
+
         </>
       ) : (
         <AccesoDenegado />

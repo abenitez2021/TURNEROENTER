@@ -392,6 +392,16 @@ function NavBar() {
               </ListItemIcon>
               <ListItemText secondary="Tablero" />
             </ListItem>
+            <ListItem
+              button
+              onClick={() => history.push("/public-turnos")}
+              className={pathName?.[1] === "" && classes.active}
+            >
+              <ListItemIcon style={{ minWidth: 30 }}>
+                <DashboardIcon fontSize="small" style={{ color: "#157592" }} />
+              </ListItemIcon>
+              <ListItemText secondary="Pantalla" />
+            </ListItem>
 
             <List component="div" disablePadding>
               <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
@@ -419,7 +429,34 @@ function NavBar() {
                   </ListItemIcon>
                   <ListItemText secondary="Marcaciones" />
                 </ListItem>
+
+
               )}
+
+              
+
+
+
+              <ListItem
+                button
+                onClick={() => history.push("/movimientos/turnero")}
+                className={pathName?.[2] === "turnero" && classes.active}
+              >
+                <ListItemIcon style={{ minWidth: 30 }}>
+                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                </ListItemIcon>
+                <ListItemText secondary="Turnero" />
+              </ListItem>
+              <ListItem
+                button
+                onClick={() => history.push("/movimientos/llamador")}
+                className={pathName?.[2] === "llamador" && classes.active}
+              >
+                <ListItemIcon style={{ minWidth: 30 }}>
+                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                </ListItemIcon>
+                <ListItemText secondary="Llamador" />
+              </ListItem>
 
 
             </List>
@@ -462,7 +499,7 @@ function NavBar() {
                 <ListItemText secondary="Permanencia" />
               </ListItem>
             </List>
-            
+
             {userContext.state.rol === "Administrador" && (
               <List component="div" disablePadding>
                 <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
@@ -493,7 +530,7 @@ function NavBar() {
                     <ListItemText secondary="Usuarios registrados" />
                   </ListItem>
                 )}
-          
+
                 {userContext.state.rol === "Administrador" && (
                   <ListItem
                     button
@@ -506,23 +543,46 @@ function NavBar() {
                     <ListItemText secondary="Dependencias registradas" />
                   </ListItem>
                 )}
-                  
+                {userContext.state.rol === "Administrador" && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/gestion/lista-puntoatencion/")}
+                    className={pathName?.[2] === "lista-puntoatencion" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Puntos de Atencion" />
+                  </ListItem>
+                )}
+                {userContext.state.rol === "Administrador" && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/gestion/lista-tramites/")}
+                    className={pathName?.[2] === "lista-tramites" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Tramites" />
+                  </ListItem>
+                )}
 
               </List>
             )}
-              <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
-                  Configuración
-                </TypographyBold>
+            <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
+              Configuración
+            </TypographyBold>
             <ListItem
-                button
-                onClick={() => history.push("/movimientos/contraseña")}
-                className={pathName?.[2] === "lista-movimientos-dos" && classes.active}
-              >
-                <ListItemIcon style={{ minWidth: 30 }}>
-                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
-                </ListItemIcon>
-                <ListItemText secondary="Cambiar contraseña" />
-              </ListItem>
+              button
+              onClick={() => history.push("/movimientos/contraseña")}
+              className={pathName?.[2] === "lista-movimientos-dos" && classes.active}
+            >
+              <ListItemIcon style={{ minWidth: 30 }}>
+                <ListIcon fontSize="small" style={{ color: "#157592" }} />
+              </ListItemIcon>
+              <ListItemText secondary="Cambiar contraseña" />
+            </ListItem>
           </List>
 
 

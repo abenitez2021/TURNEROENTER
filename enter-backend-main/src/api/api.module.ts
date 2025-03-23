@@ -4,7 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuarioEntity } from 'src/entitys';
 import { MulterModule } from '@nestjs/platform-express';
 import { HttpModule } from '@nestjs/axios';
-//import { FirebaseModule } from 'src/firebase/firebase.module';
+// import { FirebaseModule } from 'src/firebase/firebase.module';
+
 import { MarcacionController } from './marcacion/marcacion.controller';
 import { MarcacionService } from './marcacion/marcacion.service';
 import { VisitasController } from './visitas/visitas.controller';
@@ -26,6 +27,21 @@ import { PuestosService } from './puestos/puestos.service';
 import { RolespantallasController } from './rolespantallas/rolespantallas.controller';
 import { RolespantallasService } from './rolespantallas/rolespantallas.service';
 
+// 📌 Importamos los controladores y servicios de Turnos y Trámites
+import { TurnosController } from './turnos/turnos.controller';
+import { TurnosService } from './turnos/turnos.service';
+import { TramitesController } from './tramites/tramites.controller';
+import { TramitesService } from './tramites/tramites.service';
+
+//import { Module } from '@nestjs/common';
+import { TramitesModule } from './tramites/tramites.module';
+import { TurnosModule } from './turnos/turnos.module';
+
+//PuntoAtencion
+import { PuntoAtencionModule } from './puntoatencion/puntoatencion.module';
+import { PuntoAtencionController } from './puntoatencion/puntoatencion.controller';
+import { PuntoAtencionService } from './puntoatencion/puntoatencion.service';
+
 @Module({
     imports: [
         AuthModule,
@@ -33,10 +49,38 @@ import { RolespantallasService } from './rolespantallas/rolespantallas.service';
         MulterModule.register(),
         TypeOrmModule.forFeature([
             UsuarioEntity
-        ]),
-        //FirebaseModule
+        ]),TramitesModule, TurnosModule
+        // FirebaseModule
     ],
-    controllers: [MarcacionController, VisitasController, DashboardController, ConfiguracionesController, DependenciasController, UsuariosController, NacionalidadesController, TipodocumentoController, PuestosController, RolespantallasController],
-    providers: [MarcacionService, VisitasService, DashboardService, ConfiguracionesService, DependenciasService, UsuariosService, NacionalidadesService, TipodocumentoService, PuestosService, RolespantallasService]
+    controllers: [
+        MarcacionController,
+        VisitasController,
+        DashboardController,
+        ConfiguracionesController,
+        DependenciasController,
+        UsuariosController,
+        NacionalidadesController,
+        TipodocumentoController,
+        PuestosController,
+        RolespantallasController,
+        TurnosController, // ✅ Agregado
+        TramitesController, // ✅ Agregado
+        PuntoAtencionController
+    ],
+    providers: [
+        MarcacionService,
+        VisitasService,
+        DashboardService,
+        ConfiguracionesService,
+        DependenciasService,
+        UsuariosService,
+        NacionalidadesService,
+        TipodocumentoService,
+        PuestosService,
+        RolespantallasService,
+        TurnosService, // ✅ Agregado
+        TramitesService, // ✅ Agregado
+        PuntoAtencionService
+    ]
 })
 export class ApiModule {}

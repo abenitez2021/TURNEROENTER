@@ -12,12 +12,25 @@ import ListaUsuarioGuardias from "./page/gestion/ListaUsuarioGuardias";
 import ListaDependencia from "./page/gestion/ListaDependencia";
 import ListaAccesoVisitantesDos from "./page/movimientos/ListaAccesoVisitantesDos";
 import Contraseña from "./page/movimientos/Contraseña"
+import ListaTramites from "./page/gestion/ListaTramites";
+import NuevoTramite from "./page/gestion/NuevoTramite";
+import Turnero from "./page/movimientos/Turnero";
+import ListaPuntos from "./page/gestion/ListaPuntos";
+import NuevoPunto from "./page/gestion/NuevoPunto";
+import LlamadorTurnos from "./page/movimientos/LlamadorTurnos";
+import PublicTurnos from "./page/PublicTurnos";
 export const routes = [
   {
     path: "/",
     label: "Inicio",
     component: Tablero,
   },
+  {
+    path: "/public-turnos",
+    label: "Pantalla Pública",
+    component: PublicTurnos,
+  },
+  
   {
     path: "/acceder", 
     label: "INICIAR SESION",
@@ -39,6 +52,32 @@ export const routes = [
     component: ListaDependencia,
   },
   {
+    path: "/gestion/alta-tramite",
+    label: "Alta de tramites",
+    component: NuevoTramite,
+  },
+  {
+    path: "/gestion/lista-tramites",
+    label: "Tramites",
+    component: ListaTramites,
+  },
+  {
+    path: "/gestion/alta-puntoatencion",
+    label: "Alta de puntos",
+    component: NuevoPunto,
+  },
+  {
+    path: "/gestion/lista-puntoatencion",
+    label: "Puntos de Atencion",
+    component: ListaPuntos,
+  },
+
+  {
+    path: "/gestion/alta-dependencia",
+    label: "Alta de dependencia",
+    component: NuevaDependencia,
+  },
+  {
     path: "/gestion/alta-dependencia",
     label: "Alta de dependencia",
     component: NuevaDependencia,
@@ -52,6 +91,16 @@ export const routes = [
     path: "/movimientos/lista-movimientos-dos",
     label: "Acceso de visitantes por marcación de guardias",
     component: ListaAccesoVisitantesDos,
+  },
+  {
+    path: "/movimientos/turnero",
+    label: "Turnero",
+    component: Turnero,
+  },
+  {
+    path: "/movimientos/llamador",
+    label: "Llamador",
+    component: LlamadorTurnos,
   },
   {
     path: "/movimientos/contraseña",

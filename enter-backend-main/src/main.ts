@@ -10,7 +10,10 @@ async function bootstrap() {
     new ValidationPipe({ transform: true, validationError: { target: false } }),
   );
 
-  app.enableCors({ origin: true, credentials: true });
+  app.enableCors({ origin: true, credentials: false });
+
+
+  
   app.setGlobalPrefix('api');
 
   // const config = new DocumentBuilder()

@@ -8,8 +8,6 @@ import { darkTheme } from "./assets/styles/Themes";
 import { lightTheme } from "./assets/styles/Themes";
 import useDarkMode from "./assets/styles/useDarkMode";
 
-
-
 import UsersProvider from "./utils/user/UserProvider";
 import { Helmet } from "react-helmet";
 import { ThemeProvider as MuiThemeProvider } from "@material-ui/core/styles";
@@ -27,36 +25,32 @@ function App({ routes }) {
   };
 
   return (
-    <MuiThemeProvider  theme={themeMode}>
+    <MuiThemeProvider theme={themeMode}>
       <CssBaseline />
       <UsersProvider>
-
         <BrowserRouter>
           <Switch>
             {routes.map((route) => (
               <Route key={route.path} exact path={route.path}>
-
                 <Helmet>
                   <title>{route.label}</title>
                 </Helmet>
-                {route?.path === "/acceder" ||  route?.path === "/registro-wommers" ?
-
+                {route?.path === "/acceder" ||
+                route?.path === "/registro-wommers" ||
+                route?.path === "/public-turnos" ? (
                   <AppLayoutPublic
                     route={route}
                     memoizedtoggleTheme={memoizedtoggleTheme}
                     theme={theme}
                   />
-                  :
+                ) : (
                   <AppLayout
                     route={route}
                     memoizedtoggleTheme={memoizedtoggleTheme}
                     theme={theme}
                   />
-                }
-
-
-
-              </Route >
+                )}
+              </Route>
             ))}
           </Switch>
         </BrowserRouter>
