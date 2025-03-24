@@ -131,10 +131,10 @@ export default function LlamadorTurnos() {
           tramite: turno.tramite,
           box: puntoSeleccionado
         };
-      
+
         setTurnoActual(turnoConDatosCompletos);
         cargarTurnosPendientes();
-      
+
       } else {
         alertWarningError({
           data: {
@@ -330,6 +330,34 @@ export default function LlamadorTurnos() {
       >
         <DialogTitle>Turno en Atención: {turnoActual?.codigo_turno}</DialogTitle>
         <DialogContent dividers>
+          <Grid container spacing={2} style={{ marginTop: 16 }}>
+            
+            <Grid item xs={4}>
+              <img
+                src={turnoActual?.imagenFrente}
+                alt="Frente"
+                style={{ width: "100%", maxHeight: 200, objectFit: "cover" }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/images/frente.png";
+                }}
+              />
+              <Typography align="center" variant="body2">Frente</Typography>
+            </Grid>
+            <Grid item xs={4}>
+              <img
+                src={turnoActual?.imagenDorso}
+                alt="Dorso"
+                style={{ width: "100%", maxHeight: 200, objectFit: "cover" }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/images/dorso.png";
+                }}
+              />
+              <Typography align="center" variant="body2">Dorso</Typography>
+            </Grid>
+          </Grid>
+
           <Typography variant="subtitle1">
             <b>Trámite:</b> {turnoActual?.tramite || turnoActual?.nombre_tramite}
           </Typography>

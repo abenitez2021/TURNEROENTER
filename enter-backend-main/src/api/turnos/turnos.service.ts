@@ -2,6 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CrearTurnoDto } from './dto/crear-turno.dto';
 
+import * as fs from 'fs';
+import { exec } from 'child_process';
+
+
+const PDFDocument = require('pdfkit');
+
 @Injectable()
 export class TurnosService {
     private logger = new Logger('TurnosService');
@@ -10,7 +16,6 @@ export class TurnosService {
 
     async crearTurno(dto: CrearTurnoDto) {
         try {
-            // 📌 Buscar el ID de la visita con el número de documento
             const visitaResult = await this.dataSource.query(
                 `SELECT id FROM visitas WHERE nro_documento = ? ORDER BY id DESC LIMIT 1`,
                 [dto.nro_documento]
@@ -22,21 +27,123 @@ export class TurnosService {
 
             const id_visita = visitaResult[0].id;
 
-            // 📌 Formatear la fecha para evitar errores en MySQL
-            const fechaFormateada = dto.fecha_hora.toISOString().slice(0, 19).replace("T", " ");
+            console.log("id_Visita: ", id_visita, "id_tramite: ", dto.id_tramite)
 
-            // 📌 Insertar el turno en la base de datos usando `sp_turnos_crear`
             const spResult = await this.dataSource.query(
                 `CALL sp_turnos_crear(?, ?)`,
                 [id_visita, dto.id_tramite]
             );
 
-            return { ok: true, message: 'Turno creado correctamente.', result: spResult };
+            const ultimoTurno = await this.dataSource.query(
+                `SELECT id FROM turnos WHERE id_visita = ? ORDER BY id DESC LIMIT 1`,
+                [id_visita]
+            );
+            const idTurno = ultimoTurno[0]?.id;
+
+
+            // 🔍 Obtener detalles del turno recién creado
+            const resultTicket = await this.dataSource.query(`CALL sp_turnos_obtener_detalle(?)`, [idTurno]);
+            const turnoData = resultTicket[0][0];
+
+            // 🖨️ Imprimir ticket
+            await this.printTurnoTicket(turnoData);
+
+            return { ok: true, message: 'Turno creado correctamente.', result: turnoData };
         } catch (error) {
             this.logger.error('Error al crear el turno', error);
             return { ok: false, message: 'No se pudo crear el turno.', error };
         }
     }
+
+    // imprimir pdf de ticket de turno
+
+
+    /**
+ * ✨ Generar e imprimir ticket de turno
+ */
+
+    private async printTurnoTicket(turnoData: any): Promise<void> {
+        const filePath = `C:\\ENTER\\TURNEROENTER\\impresora\\turno.pdf`;
+        const printerName = `POS80`; // Nombre exacto de la impresora
+        const sumatraPath = `C:\\Users\\aldo-\\AppData\\Local\\SumatraPDF\\SumatraPDF.exe`; // Ruta de SumatraPDF
+
+        const logoPath = "C:\\ENTER\\TURNEROENTER\\impresora\\logo.png";
+
+        console.log("📈 Datos recibidos para imprimir ticket de turno:", turnoData);
+
+        const doc = new PDFDocument({
+            size: [226, 226], // 80mm x 80mm
+            margins: { top: 5, left: 5, right: 5, bottom: 5 },
+        });
+
+        const stream = fs.createWriteStream(filePath);
+        doc.pipe(stream);
+
+        // 🖼️ Logo si existe
+        if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, { width: 180, align: "center" }).moveDown();
+        }
+
+        // Espaciado vertical
+        doc.font("Helvetica-Bold")
+            .fontSize(12)
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .text(" ", { align: "center" })
+            .moveDown(0.5); // Espacio reducido para mejor organización
+
+
+        // 🔹 Título
+        doc.font("Helvetica-Bold")
+            .fontSize(12)
+            .text("TICKET DE TURNO", { align: "center" })
+            .moveDown(0.5);
+
+        // ℹ️ Datos del turno
+        doc.font("Helvetica-Bold").fontSize(9).text("Turno: ", { continued: true });
+        doc.font("Helvetica").text(`${turnoData.codigo_turno}`);
+
+        doc.font("Helvetica-Bold").text("Nombre: ", { continued: true });
+        doc.font("Helvetica").text(`${turnoData.nombre} ${turnoData.apellido}`);
+
+        doc.font("Helvetica-Bold").text("Documento: ", { continued: true });
+        doc.font("Helvetica").text(`${turnoData.nro_documento}`);
+
+        doc.font("Helvetica-Bold").text("Trámite: ", { continued: true });
+        doc.font("Helvetica").text(`${turnoData.tramite}`);
+
+        doc.font("Helvetica-Bold").text("Fecha: ", { continued: true });
+        doc.font("Helvetica").text(`${new Date().toLocaleString()}`);
+
+        doc.moveDown(0.5);
+        doc.font("Helvetica")
+            .fontSize(8)
+            .text("Por favor, espere a ser llamado.", { align: "center" })
+            .text("Gracias por su visita.", { align: "center" })
+            .text("ENTER 2.0 by CCS S.A.", { align: "center" });
+
+        doc.end();
+
+        // 📄 Esperar a terminar el PDF para imprimir
+        stream.on("finish", () => {
+            console.log("✅ PDF del turno generado correctamente.");
+
+            const printCommand = `powershell -Command Start-Process -FilePath '${sumatraPath}' -ArgumentList '-print-to \"${printerName}\" -print-settings fit \"${filePath}\"' -NoNewWindow -Wait`;
+
+            exec(printCommand, (error) => {
+                if (error) {
+                    console.error(`❌ Error al imprimir el ticket del turno: ${error.message}`);
+                    return;
+                }
+                console.log("✅ Ticket del turno enviado a imprimir correctamente.");
+            });
+        });
+    }
+
+
     // 📌 Listar Turnos
     async listarTurnos(estado?: string, prioridades?: string[], tramites?: number[], box?: number) {
         try {
@@ -59,7 +166,7 @@ export class TurnosService {
     // 📌 Llamar Turno (Actualizar estado a ATENDIENDO)
     async llamarTurno(id: number, box: number) {
         try {
-            // 1️⃣ Verificar si el turno existe y está pendiente
+            // 1️⃣ Buscar el turno pendiente
             const turno = await this.dataSource.query(
                 `SELECT * FROM turnos WHERE id = ? AND estado = 'PENDIENTE'`,
                 [id]
@@ -69,13 +176,37 @@ export class TurnosService {
                 return { ok: false, message: 'El turno no está disponible o ya ha sido atendido.' };
             }
 
-            // 2️⃣ Actualizar estado del turno a "ATENDIENDO" y asignar box
+            const turnoData = turno[0];
+
+            // 2️⃣ Marcar como atendiendo
             await this.dataSource.query(
                 `UPDATE turnos SET estado = 'ATENDIENDO', fecha_llamado = NOW(), box = ? WHERE id = ?`,
                 [box, id]
             );
 
-            return { ok: true, message: 'Turno llamado correctamente.', turno: turno[0] };
+            // 3️⃣ Obtener ruta de imágenes
+            const sp = 'call sp_visitas_buscar_list(?)';
+            const parametros = [turnoData.documento];
+            const result = await this.dataSource.query(sp, parametros);
+            const visita = result[0][0]; // asumimos que siempre hay al menos una visita
+
+            const turnoConImagenes = {
+                ...turnoData,
+                nro_documento: visita.documento,
+                id_visita: visita.idVisita,
+                foto: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/foto.png`,
+                imagenFrente: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/frente.png`,
+                imagenDorso: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/dorso.png`
+            };
+
+            console.log(" imagen frente", turnoConImagenes.imagenFrente)
+            console.log(" imagen dorso", turnoConImagenes.imagenDorso)
+
+            return {
+                ok: true,
+                message: 'Turno llamado correctamente.',
+                turno: turnoConImagenes
+            };
         } catch (error) {
             this.logger.error('❌ Error al llamar turno', error);
             return { ok: false, message: 'No se pudo llamar el turno.' };

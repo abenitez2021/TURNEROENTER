@@ -220,25 +220,25 @@ export class VisitasService {
         const filePath = `C:\\ENTER\\TURNEROENTER\\impresora\\reporte.pdf`;
         const printerName = `POS80`; // Nombre exacto de la impresora
         const sumatraPath = `C:\\Users\\aldo-\\AppData\\Local\\SumatraPDF\\SumatraPDF.exe`; // Ruta de SumatraPDF
-    
+
         console.log("📌 Datos recibidos para impresión:", visitData);
-    
+
         // Crear documento PDF con tamaño exacto y márgenes definidos
         const doc = new PDFDocument({
             size: [226, 226], // 80mm x 80mm en puntos
             margins: { top: 5, left: 5, right: 5, bottom: 5 }
         });
-    
+
         // Guardar PDF en archivo
         const stream = fs.createWriteStream(filePath);
         doc.pipe(stream);
-    
+
         // 🖼️ Agregar el logo si existe
         const logoPath = "C:\\ENTER\\TURNEROENTER\\impresora\\logo.png";
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, { width: 180, align: "center" }).moveDown();
         }
-    
+
         // 📌 Espacio de logos
         doc.font("Helvetica-Bold")
             .fontSize(12)
@@ -249,56 +249,66 @@ export class VisitasService {
             .text(" ", { align: "center" })
             .text(" ", { align: "center" })
             .moveDown(0.5); // Espacio reducido para mejor organización
-    
+
         // 📌 Título del ticket
         doc.font("Helvetica-Bold")
             .fontSize(12)
             .text("REGISTRO DE VISITA", { align: "center" })
             .moveDown(0.5); // Espacio reducido para mejor organización
-    
+
         // ℹ️ Datos de la visita
         doc.font("Helvetica-Bold").fontSize(9).text("Nombre: ", { continued: true });
         doc.font("Helvetica").text(`${visitData.nombre}`);
-    
+
         doc.font("Helvetica-Bold").text("Apellido: ", { continued: true });
         doc.font("Helvetica").text(`${visitData.apellido}`);
-    
+
         doc.font("Helvetica-Bold").text("Documento: ", { continued: true });
         doc.font("Helvetica").text(`${visitData.nro_documento}`);
-    
+
         doc.font("Helvetica-Bold").text("Fecha: ", { continued: true });
         doc.font("Helvetica").text(`${new Date().toLocaleString()}`);
-    
+
         doc.font("Helvetica-Bold").text("Dependencia: ", { continued: true });
         doc.font("Helvetica").text(`${visitData.dependencia || 'NO ESPECIFICADA'}`);
-    
+
         doc.moveDown(0.5); // Espacio antes del mensaje final
-    
+
         // 🔹 Mensaje final
         doc.font("Helvetica")
             .fontSize(8)
             .text("Gracias por su visita.", { align: "center" })
             .text("ENTER 2.0 by CCS S.A.", { align: "center" });
-    
+
         doc.end();
-    
+
         // 📤 Esperamos a que termine de generar el PDF antes de imprimirlo
         stream.on("finish", () => {
             console.log("✅ PDF generado correctamente.");
-    
-            // 🔥 Enviar el PDF a la impresora POS usando SumatraPDF
-            const printCommand = `powershell -Command Start-Process -FilePath '${sumatraPath}' -ArgumentList '-print-to "${printerName}" -print-settings fit "${filePath}"' -NoNewWindow -Wait`;
-    
-            exec(printCommand, (error) => {
-                if (error) {
-                    console.error(`❌ Error al imprimir: ${error.message}`);
-                    return;
-                }
-                console.log("✅ Impresión enviada correctamente.");
-            });
+
+            // ⚠️ Solo imprimir si la dependencia es diferente a 15 (turnero)
+
+            console.log("✅ Dependencia ", visitData.dependencia);
+            if (visitData.dependencia !== 'TURNERO') {
+
+                console.log(`🖨️ Enviando a impresora para dependencia ${visitData.idDependencia}`);
+
+                const printCommand = `powershell -Command Start-Process -FilePath '${sumatraPath}' -ArgumentList '-print-to "${printerName}" -print-settings fit "${filePath}"' -NoNewWindow -Wait`;
+
+                exec(printCommand, (error) => {
+                    if (error) {
+                        console.error(`❌ Error al imprimir: ${error.message}`);
+                        return;
+                    }
+                    console.log("✅ Impresión enviada correctamente.");
+                });
+            } else {
+                console.log("📎 Visita de dependencia 15 detectada, se omite impresión.");
+            }
         });
+
     }
-    
+
 
     //Ver imagen foto perfil del documento
     async verDocumentoFoto(idPuesto: number, imagen: string) {
@@ -357,6 +367,7 @@ export class VisitasService {
     //Crear registro de entrada visita
     async registrarEntrada(dto: VisitasEntradaDto, user: UsuarioEntity, datos: entradaDatosDto) {
         const fs = require('fs');
+        const path = require('path');
 
         const sp = 'call sp_visitas_entrada(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
         const parametros = [
@@ -388,13 +399,71 @@ export class VisitasService {
             const result = await this.dataSource.query(sp, parametros);
             const data = result[0][0];
 
-            // Ejecutar otro SP para obtener los datos completos para el ticket
-            const spTicket = 'call sp_visitas_obtener_detalle(?)';
-            const parametrosTicket = [data.idVisita];
-            const resultTicket = await this.dataSource.query(spTicket, parametrosTicket);
+            // Obtener datos del puesto
+            const sp2 = 'call sp_visitas_puestos_list(?)';
+            const result2 = await this.dataSource.query(sp2, [dto.idPuesto]);
+            const data2 = result2[0][0];
+
+            // Nombres de archivo destino
+            const foto = 'foto.png';
+            const frente = 'frente.png';
+            const dorso = 'dorso.png';
+
+            // Crear carpetas
+            const dirDocumento = `${data2.urlServidor}${dto.documento}`;
+            if (!fs.existsSync(dirDocumento)) fs.mkdirSync(dirDocumento);
+            const dirVisita = `${dirDocumento}/${data.idVisita}`;
+            if (!fs.existsSync(dirVisita)) fs.mkdirSync(dirVisita);
+
+            // Copiar foto
+            const fotoOrigen = `${data2.ubicacionCarpeta}${data2.foto}`;
+            const fotoDestino = `${dirVisita}/${foto}`;
+            if (fs.existsSync(fotoOrigen)) fs.copyFileSync(fotoOrigen, fotoDestino);
+
+            // Copiar frente
+            const frenteOrigen = `${data2.ubicacionCarpeta}${data2.imagenFrente}`;
+            const frenteDestino = `${dirVisita}/${frente}`;
+            if (fs.existsSync(frenteOrigen)) fs.copyFileSync(frenteOrigen, frenteDestino);
+
+            // Detectar dorso automáticamente desde carpeta Page1
+            const page1Path = path.join(data2.ubicacionCarpeta, 'Page1');
+            const dorsoDestino = `${dirVisita}/${dorso}`;
+            if (fs.existsSync(page1Path)) {
+                const archivos = fs.readdirSync(page1Path);
+                const posibleDorso = archivos.find(
+                    (file) =>
+                        file.toLowerCase().endsWith('.png') &&
+                        !['photo.png', 'white.png'].includes(file.toLowerCase())
+                );
+
+                if (posibleDorso) {
+                    const dorsoOrigen = path.join(page1Path, posibleDorso);
+                    fs.copyFileSync(dorsoOrigen, dorsoDestino);
+                    console.log(`✔️ Dorso detectado y copiado: ${posibleDorso}`);
+                } else {
+                    console.warn('⚠️ No se encontró archivo de dorso en Page1');
+                }
+            } else {
+                console.warn('❌ Carpeta Page1 no existe');
+            }
+
+            // Copiar JSONs
+            const json1Origen = `${data2.ubicacionCarpeta}${data2.subcarpetaImpresora}${data2.archivoPrincipal}`;
+            const json1Destino = `${dirVisita}/${data2.archivoPrincipal}`;
+            if (fs.existsSync(json1Origen)) fs.copyFileSync(json1Origen, json1Destino);
+
+            const json2Origen = `${data2.ubicacionCarpeta}${data2.archivoSecundario}`;
+            const json2Destino = `${dirVisita}/${data2.archivoSecundario}`;
+            if (fs.existsSync(json2Origen)) fs.copyFileSync(json2Origen, json2Destino);
+
+            // Actualizar base de datos con nombres de los archivos
+            const sp3 = 'call sp_visitas_documentos_update(?,?,?,?)';
+            await this.dataSource.query(sp3, [data.idVisita, foto, frente, dorso]);
+
+            // Obtener info para imprimir ticket
+            const resultTicket = await this.dataSource.query('call sp_visitas_obtener_detalle(?)', [data.idVisita]);
             const visitData = resultTicket[0][0];
 
-            // Llamar a la función para imprimir el ticket con los datos completos
             await this.printTicket(visitData);
 
             return { ok: true, message: 'Visita creada correctamente.', result: data };
