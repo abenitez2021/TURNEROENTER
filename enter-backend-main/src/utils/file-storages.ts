@@ -9,7 +9,7 @@ import { generateVisitaDocumentoPath } from "./file-paths";
         destination: (req: any, file: any, cb: any) => {
 
             generateVisitaDocumentoPath();
-            const pathVisitas = path.resolve(  '/Applications/XAMPP/htdocs/enter/servidor/documentos',req.params.nro, req.params.id);
+            const pathVisitas = path.resolve(  'C:/ENTER/documentos',req.params.nro, req.params.id);
         
             const existe = existsSync( pathVisitas );
             if ( !existe ) {
@@ -37,7 +37,7 @@ import { generateVisitaDocumentoPath } from "./file-paths";
         destination: (req: any, file: any, cb: any) => {
 
             generateVisitaDocumentoPath();
-            const pathVisitas = path.resolve(  '/Applications/XAMPP/htdocs/enter/servidor/documentos',req.params.nro, req.params.id);
+            const pathVisitas = path.resolve(  'C:/ENTER/documentos',req.params.nro, req.params.id);
         
             const existe = existsSync( pathVisitas );
             if ( !existe ) {
@@ -65,7 +65,7 @@ import { generateVisitaDocumentoPath } from "./file-paths";
         destination: (req: any, file: any, cb: any) => {
 
             generateVisitaDocumentoPath();
-            const pathVisitas = path.resolve(  '/Applications/XAMPP/htdocs/enter/servidor/documentos',req.params.nro, req.params.id);
+            const pathVisitas = path.resolve(  'C:/ENTER/documentos',req.params.nro, req.params.id);
         
             const existe = existsSync( pathVisitas );
             if ( !existe ) {
