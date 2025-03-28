@@ -2,6 +2,7 @@ import { Controller, Post, Body, Get, Put } from '@nestjs/common';
 import { PuntoAtencionService } from './puntoatencion.service';
 import { CrearPuntoAtencionDto } from './dto/crear-puntoatencion.dto';
 import { ActualizarPuntoAtencionDto } from './dto/actualizar-puntoatencion.dto';
+import { InactivarPuntoDto } from './dto/inactivar-puntoatencion.dto';
 
 @Controller('puntoatencion')
 export class PuntoAtencionController {
@@ -20,5 +21,10 @@ export class PuntoAtencionController {
     @Put('editar')
     async editarPuntoAtencion(@Body() dto: ActualizarPuntoAtencionDto) {
         return this.puntoAtencionService.editarPuntoAtencion(dto);
+    }
+
+    @Put('inactivar')
+    async inactivarPuntoAtencion(@Body() dto: InactivarPuntoDto) {
+        return this.puntoAtencionService.inactivarPuntoAtencion(dto);
     }
 }

@@ -201,7 +201,7 @@ const options = {
       });
   
       let status = response.status;
-      if (status === 200) {
+      if (status === 200 || 2001) {
         if (response.data?.ok) {
           getPedido();
           setIsLoading(false);

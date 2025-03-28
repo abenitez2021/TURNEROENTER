@@ -56,6 +56,22 @@ export class TramitesService {
             return { ok: false, message: 'No se pudo actualizar el trámite.', error };
         }
     }
+    // 📌 Editar un trámite
+    async inactivarTramite(id: number) {
+        try {
+            const sp = 'update tramites set activo=false where id= ?';
+            const parametros = [
+                id
+             ];
+            console.log("📌 Parámetros enviados a MySQL:", parametros); // 🛠 Depuración
+    
+            await this.dataSource.query(sp, parametros);
+            return { ok: true, message: 'Trámite inactivado correctamente.' };
+        } catch (error) {
+            this.logger.error('❌ Error al editar trámite:', error);
+            return { ok: false, message: 'No se pudo actualizar el trámite.', error };
+        }
+    }
     
     
 }

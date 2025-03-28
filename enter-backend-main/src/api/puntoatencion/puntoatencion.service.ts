@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CrearPuntoAtencionDto } from './dto/crear-puntoatencion.dto';
 import { ActualizarPuntoAtencionDto } from './dto/actualizar-puntoatencion.dto';
+import { InactivarPuntoDto } from './dto/inactivar-puntoatencion.dto';
 
 @Injectable()
 export class PuntoAtencionService {
@@ -48,4 +49,19 @@ export class PuntoAtencionService {
             return { ok: false, message: 'No se pudo actualizar el punto de atención.' };
         }
     }
+
+    // 📌 Inactivar un punto de atención
+    async inactivarPuntoAtencion(dto: InactivarPuntoDto) {
+        try {
+            const sp = 'update puntoatencion set activo=false where id= ?';
+            const parametros = [dto.id];
+            await this.dataSource.query(sp, parametros);
+
+            return { ok: true, message: 'Punto de atención desactivado correctamente.' };
+        } catch (error) {
+            this.logger.error('Error al editar punto de atención', error);
+            return { ok: false, message: 'No se pudo actualizar el punto de atención.' };
+        }
+    }
+
 }

@@ -182,7 +182,7 @@ const options = {
     let url = "puntoatencion/inactivar/";
   
     try {
-      const response = await axios.post(url, {
+      const response = await axios.put(url, {
         id: props?.id, // ✅ CAMBIADO de idDependencia a id
       });
   
