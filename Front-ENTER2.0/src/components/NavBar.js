@@ -381,43 +381,52 @@ function NavBar() {
         <>
 
           <List>
-
-            <ListItem
-              button
-              onClick={() => history.push("/")}
-              className={pathName?.[1] === "" && classes.active}
-            >
-              <ListItemIcon style={{ minWidth: 30 }}>
-                <DashboardIcon fontSize="small" style={{ color: "#157592" }} />
-              </ListItemIcon>
-              <ListItemText secondary="Tablero" />
-            </ListItem>
-            <ListItem
-              button
-              onClick={() => history.push("/public-turnos")}
-              className={pathName?.[1] === "" && classes.active}
-            >
-              <ListItemIcon style={{ minWidth: 30 }}>
-                <DashboardIcon fontSize="small" style={{ color: "#157592" }} />
-              </ListItemIcon>
-              <ListItemText secondary="Pantalla" />
-            </ListItem>
+            {(userContext.state.rol === "Administrador"
+              || userContext.state.rol === "Guardia") && (
+                <ListItem
+                  button
+                  onClick={() => history.push("/")}
+                  className={pathName?.[1] === "" && classes.active}
+                >
+                  <ListItemIcon style={{ minWidth: 30 }}>
+                    <DashboardIcon fontSize="small" style={{ color: "#157592" }} />
+                  </ListItemIcon>
+                  <ListItemText secondary="Tablero" />
+                </ListItem>
+              )}
+            {(userContext.state.rol === "Administrador"
+              || userContext.state.rol === "PANTALLA") && (
+                <ListItem
+                  button
+                  onClick={() => history.push("/public-turnos")}
+                  className={pathName?.[1] === "" && classes.active}
+                >
+                  <ListItemIcon style={{ minWidth: 30 }}>
+                    <DashboardIcon fontSize="small" style={{ color: "#157592" }} />
+                  </ListItemIcon>
+                  <ListItemText secondary="Pantalla" />
+                </ListItem>
+              )}
 
             <List component="div" disablePadding>
-              <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
-                Movimientos
-              </TypographyBold>
-
-              <ListItem
-                button
-                onClick={() => history.push("/movimientos/lista-movimientos-dos")}
-                className={pathName?.[2] === "lista-movimientos-dos" && classes.active}
-              >
-                <ListItemIcon style={{ minWidth: 30 }}>
-                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
-                </ListItemIcon>
-                <ListItemText secondary="Control de Acceso" />
-              </ListItem>
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Guardia") && (
+                  <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
+                    Movimientos
+                  </TypographyBold>)}
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Guardia") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/movimientos/lista-movimientos-dos")}
+                    className={pathName?.[2] === "lista-movimientos-dos" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Control de Acceso" />
+                  </ListItem>
+                )}
               {userContext.state.rol === "Administrador" && (
                 <ListItem
                   button
@@ -429,82 +438,94 @@ function NavBar() {
                   </ListItemIcon>
                   <ListItemText secondary="Marcaciones" />
                 </ListItem>
-
-
               )}
 
-              
-
-
-
-              <ListItem
-                button
-                onClick={() => history.push("/movimientos/turnero")}
-                className={pathName?.[2] === "turnero" && classes.active}
-              >
-                <ListItemIcon style={{ minWidth: 30 }}>
-                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
-                </ListItemIcon>
-                <ListItemText secondary="Turnero" />
-              </ListItem>
-              <ListItem
-                button
-                onClick={() => history.push("/movimientos/llamador")}
-                className={pathName?.[2] === "llamador" && classes.active}
-              >
-                <ListItemIcon style={{ minWidth: 30 }}>
-                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
-                </ListItemIcon>
-                <ListItemText secondary="Llamador" />
-              </ListItem>
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "TURNERO") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/movimientos/turnero")}
+                    className={pathName?.[2] === "turnero" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Turnero" />
+                  </ListItem>)
+              }
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "LLAMADOR") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/movimientos/llamador")}
+                    className={pathName?.[2] === "llamador" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Llamador" />
+                  </ListItem>
+                )}
 
 
             </List>
 
             <List component="div" disablePadding>
-              <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
-                Visitas del día
-              </TypographyBold>
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Guardia") && (
+                  <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
+                    Visitas del día
+                  </TypographyBold>
+                )}
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Guardia") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/resumen/entradas/")}
+                    className={pathName?.[2] === "entradas" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Entradas" />
+                  </ListItem>
+                )}
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Guardia") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/resumen/salidas")}
+                    className={pathName?.[2] === "salidas" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Salidas" />
+                  </ListItem>
+                )}
 
-              <ListItem
-                button
-                onClick={() => history.push("/resumen/entradas/")}
-                className={pathName?.[2] === "entradas" && classes.active}
-              >
-                <ListItemIcon style={{ minWidth: 30 }}>
-                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
-                </ListItemIcon>
-                <ListItemText secondary="Entradas" />
-              </ListItem>
-
-              <ListItem
-                button
-                onClick={() => history.push("/resumen/salidas")}
-                className={pathName?.[2] === "salidas" && classes.active}
-              >
-                <ListItemIcon style={{ minWidth: 30 }}>
-                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
-                </ListItemIcon>
-                <ListItemText secondary="Salidas" />
-              </ListItem>
-
-              <ListItem
-                button
-                onClick={() => history.push("/resumen/permanencia/")}
-                className={pathName?.[2] === "permanencia" && classes.active}
-              >
-                <ListItemIcon style={{ minWidth: 30 }}>
-                  <ListIcon fontSize="small" style={{ color: "#157592" }} />
-                </ListItemIcon>
-                <ListItemText secondary="Permanencia" />
-              </ListItem>
+              {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Guardia") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/resumen/permanencia/")}
+                    className={pathName?.[2] === "permanencia" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Permanencia" />
+                  </ListItem>
+                )}
             </List>
 
             {userContext.state.rol === "Administrador" && (
               <List component="div" disablePadding>
-                <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
-                  Gestión
-                </TypographyBold>
+                {userContext.state.rol === "Administrador" && (
+                  <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
+                    Gestión
+                  </TypographyBold>
+                )}
                 {userContext.state.rol === "Administrador" && (
                   <ListItem
                     button
@@ -534,7 +555,8 @@ function NavBar() {
                 {userContext.state.rol === "Administrador" && (
                   <ListItem
                     button
-                    onClick={() => history.push("/gestion/lista-dependencias/")}
+                    onClick={() => {history.push("/gestion/lista-dependencias/")
+                    }}
                     className={pathName?.[2] === "lista-dependencias" && classes.active}
                   >
                     <ListItemIcon style={{ minWidth: 30 }}>
@@ -570,19 +592,25 @@ function NavBar() {
 
               </List>
             )}
-            <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
-              Configuración
-            </TypographyBold>
-            <ListItem
-              button
-              onClick={() => history.push("/movimientos/contraseña")}
-              className={pathName?.[2] === "lista-movimientos-dos" && classes.active}
-            >
-              <ListItemIcon style={{ minWidth: 30 }}>
-                <ListIcon fontSize="small" style={{ color: "#157592" }} />
-              </ListItemIcon>
-              <ListItemText secondary="Cambiar contraseña" />
-            </ListItem>
+            {(userContext.state.rol === "Administrador"
+              || userContext.state.rol === "Guardia") && (
+                <TypographyBold variant="subtitle2" style={{ color: "#157592" }} className={classes.agrupador}>
+                  Configuración
+                </TypographyBold>
+              )}
+            {(userContext.state.rol === "Administrador"
+              || userContext.state.rol === "Guardia") && (
+                <ListItem
+                  button
+                  onClick={() => history.push("/movimientos/contraseña")}
+                  className={pathName?.[2] === "lista-movimientos-dos" && classes.active}
+                >
+                  <ListItemIcon style={{ minWidth: 30 }}>
+                    <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                  </ListItemIcon>
+                  <ListItemText secondary="Cambiar contraseña" />
+                </ListItem>
+              )}
           </List>
 
 

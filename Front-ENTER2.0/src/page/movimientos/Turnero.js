@@ -52,6 +52,9 @@ import nacionalidades from "./Nacionalidades.json";
 import frontal from "../../assets/images/ci_frontal.png";
 import dorsal from "../../assets/images/ci_dorsal.png";
 import foto from "../../assets/images/avatar.png"
+import flecha from "../../assets/images/flecha_abajo.png"
+
+import NavBar from "../../components/NavBar";
 
 
 
@@ -116,11 +119,21 @@ const inicialScannerValue = {
 // Variables para almacenar valores temporales
 
 
-export default function ListaAccesoVisitantesDos() {
+export default function Turnero() {
   const history = useHistory();
   const userContext = useContext(UserContext);
   const classes = useStyles();
   const [isLoading, setIsLoading] = useState(false);
+
+  //nuevo flujo del front
+  const [mostrarPantallaInicio, setMostrarPantallaInicio] = useState(true);
+  const [mostrarInstruccionDocumento, setMostrarInstruccionDocumento] = useState(false);
+  const esTurnero = userContext.state.rol === "TURNERO";
+
+
+  // hasta aqui
+
+
   const [data, setData] = useState({
     content: [],
   });
@@ -154,6 +167,7 @@ export default function ListaAccesoVisitantesDos() {
     getDependencia();
     getTramites();
     iniciarSocket();
+
   }, []);
 
 
@@ -252,11 +266,14 @@ export default function ListaAccesoVisitantesDos() {
         if (
           !pedidos.result.info ||
           Object.keys(pedidos.result.info).length === 0
+
+
         ) {
           // Si info no existe o es un objeto vacío, sal de la función ya que significa que no hay datos para leer
           setIsLoading(false);
           return;
         }
+        setMostrarInstruccionDocumento(false);
         setVisitanteAcceso((prevVisitanteAcceso) => {
           return {
             ...prevVisitanteAcceso,
@@ -812,76 +829,147 @@ export default function ListaAccesoVisitantesDos() {
 
   return (
     <>
+      {mostrarPantallaInicio && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "#000",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+            color: "#fff",
+            textAlign: "center",
+          }}
+          onClick={() => {
+            setMostrarPantallaInicio(false);
+            setMostrarInstruccionDocumento(true);
+          }}
+          onTouchStart={() => {
+            setMostrarPantallaInicio(false);
+            setMostrarInstruccionDocumento(true);
+          }}
+        >
+          <img
+            src={Logo}
+            alt="Logo"
+            style={{ width: "200px", marginBottom: "30px" }}
+          />
+          <Typography variant="h4" style={{ fontSize: "2rem" }}>
+            Toque la pantalla para iniciar
+          </Typography>
+        </div>
+      )}
+
+      {mostrarInstruccionDocumento && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "#fff",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+            flexDirection: "column",
+            textAlign: "center",
+          }}
+        >
+          <img
+            src={`${flecha}`} // ⚠️ asegurate de tener esta imagen en `public/`
+            alt="Coloque su cédula"
+            style={{ width: "250px", marginBottom: "20px" }}
+          />
+          <Typography variant="h5">
+            Coloque su cédula en la ranura <br /> <strong>FLECHA ABAJO</strong>
+          </Typography>
+        </div>
+      )}
+
       {userContext.state.nombreUsu !== "" ? (
         <>
           <Grid container alignItems="center">
-            <Grid item xs={6} sm={6} md={6} lg={6} xl={6}>
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <FiberManualRecordIcon
-                      style={{ color: socketConectado ? "green" : "red" }}
-                    />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      socketConectado
-                        ? "CONTROL DE ACCESO VIA SCANNER"
-                        : "CONTROL DE ACCESO VIA CARGA MANUAL"
-                    }
-                    secondary="Registra los accesos a las dependencias desde aquí"
-                  />
-                </ListItem>
-              </List>
-            </Grid>
-            <Grid item xs={6} sm={6} md={6} lg={6} xl={6}>
-              <Button
-                style={{
-                  marginRight: 5,
-                  backgroundColor: socketConectado ? "black" : "green",
-                }}
-                color="primary"
-                variant="contained"
-                onClick={() => {
-                  if (socketConectado) {
-                    detenerSocket();
-                  } else {
-                    iniciarSocket();
-                  }
-                }}
-              >
-                {socketConectado ? "Cargar Manualmente" : "Usar Scanner"}
-              </Button>
+            {!esTurnero && (
+              <>
+                <Grid item xs={6} sm={6} md={6} lg={6} xl={6}>
+                  <List>
+                    <ListItem>
+                      <ListItemIcon>
+                        <FiberManualRecordIcon
+                          style={{ color: socketConectado ? "green" : "red" }}
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          socketConectado
+                            ? "CONTROL DE ACCESO VIA SCANNER"
+                            : "CONTROL DE ACCESO VIA CARGA MANUAL"
+                        }
+                        secondary="Registra los accesos a las dependencias desde aquí"
+                      />
+                    </ListItem>
+                  </List>
+                </Grid>
 
-              {userContext.state.rol === "Administrador" && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  size="small"
-                  style={{ marginRight: 5 }}
-                  onClick={() => {
-                    handleGuardar();
-                    getObtenerMarcación();
-                  }}
-                >
-                  Obtener documentos
-                </Button>
-              )}
-              <Button
-                variant="outlined"
-                color="primary"
-                size="small"
-                style={{ marginRight: 5 }}
-                onClick={() => {
-                  iniciarSocket(); // Si necesitas que esta función se ejecute también
-                  window.location.reload(); // Esto recarga la página
-                  getLimpiarLecturaFisica();
-                }}
-                title="Actualizar conexión"
-              >
-                Refrescar conexión
-              </Button>
-            </Grid>
+                <Grid item xs={6} sm={6} md={6} lg={6} xl={6}>
+                  <Button
+                    style={{
+                      marginRight: 5,
+                      backgroundColor: socketConectado ? "black" : "green",
+                    }}
+                    color="primary"
+                    variant="contained"
+                    onClick={() => {
+                      if (socketConectado) {
+                        detenerSocket();
+                      } else {
+                        iniciarSocket();
+                      }
+                    }}
+                  >
+                    {socketConectado ? "Cargar Manualmente" : "Usar Scanner"}
+                  </Button>
+
+                  {userContext.state.rol === "Administrador" && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      style={{ marginRight: 5 }}
+                      onClick={() => {
+                        handleGuardar();
+                        getObtenerMarcación();
+                      }}
+                    >
+                      Obtener documentos
+                    </Button>
+                  )}
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    size="small"
+                    style={{ marginRight: 5 }}
+                    onClick={() => {
+                      iniciarSocket(); // Si necesitas que esta función se ejecute también
+                      window.location.reload(); // Esto recarga la página
+                      getLimpiarLecturaFisica();
+                    }}
+                    title="Actualizar conexión"
+                  >
+                    Refrescar conexión
+                  </Button>
+                </Grid>
+              </>
+            )}
+
           </Grid>
 
           <Card>
@@ -894,139 +982,143 @@ export default function ListaAccesoVisitantesDos() {
                 spacing={3}
                 style={{ paddingTop: 50 }}
               >
-                <Grid item xs={3}>
-                  <Box mb={3} style={{ textAlign: "-webkit-center" }}>
-                    {visita.foto && visita.info ? ( // Validar visita.foto y visita.info
-                      <>
-                        <img
-                          alt="Foto"
-                          src={visita.foto || `${foto}`}
+                {!esTurnero && (
+                  <Grid item xs={3}>
+                    <Box mb={3} style={{ textAlign: "-webkit-center" }}>
+                      {visita.foto && visita.info ? ( // Validar visita.foto y visita.info
+                        <>
+                          <img
+                            alt="Foto"
+                            src={visita.foto || `${foto}`}
+                            style={{
+                              width: "50%",
+                              height: "50%",
+                            }}
+                            onError={(e) => {
+                              e.target.onerror = null; // Evita un bucle infinito
+                              e.target.src = `${foto}`; // Cambia a ícono de cámara si hay error
+                            }}
+                          />
+                          <Typography variant="body1">Foto</Typography>
+                        </>
+                      ) : (
+                        <div
                           style={{
-                            width: "50%",
-                            height: "50%",
-                          }}
-                          onError={(e) => {
-                            e.target.onerror = null; // Evita un bucle infinito
-                            e.target.src = `${foto}`; // Cambia a ícono de cámara si hay error
-                          }}
-                        />
-                        <Typography variant="body1">Foto</Typography>
-                      </>
-                    ) : (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          marginTop: 10,
-                          width: "100%",
-                          height: "100%",
-                        }}
-                      ></div>
-
-                      // se comenta a pedido de Alejandro, no quiere que se muestre un placeholder de documento
-                      // <img
-                      //   alt="Foto"
-                      //   src={logoW} // Mostrar la imagen predefinida
-                      //   style={{
-                      //     width: "100%", // Tamaño personalizado
-                      //     height: "100%", // Tamaño personalizado
-                      //   }}
-                      // />
-                    )}
-                  </Box>
-                </Grid>
-
-                <Grid item xs={3}>
-                  <Box mb={3} style={{ textAlign: "-webkit-center" }}>
-                    {visita.imagenFrente && visita.info ? ( // Validar visita.imagenFrente y visita.info
-                      <>
-                        <img
-                          alt="Frente"
-                          src={visita.imagenFrente || `${frontal}`}
-                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            marginTop: 10,
                             width: "100%",
                             height: "100%",
                           }}
-                          onError={(e) => {
-                            e.target.onerror = null; // Evita un bucle infinito
-                            e.target.src = `${frontal}`; // Cambia a ícono de cámara si hay error
-                          }}
-                        />
-                        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                        ></div>
 
-                        </div>
+                        // se comenta a pedido de Alejandro, no quiere que se muestre un placeholder de documento
+                        // <img
+                        //   alt="Foto"
+                        //   src={logoW} // Mostrar la imagen predefinida
+                        //   style={{
+                        //     width: "100%", // Tamaño personalizado
+                        //     height: "100%", // Tamaño personalizado
+                        //   }}
+                        // />
+                      )}
+                    </Box>
+                  </Grid>
+                )}
+                {!esTurnero && (
+                  <Grid item xs={3}>
+                    <Box mb={3} style={{ textAlign: "-webkit-center" }}>
+                      {visita.imagenFrente && visita.info ? ( // Validar visita.imagenFrente y visita.info
+                        <>
+                          <img
+                            alt="Frente"
+                            src={visita.imagenFrente || `${frontal}`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                            }}
+                            onError={(e) => {
+                              e.target.onerror = null; // Evita un bucle infinito
+                              e.target.src = `${frontal}`; // Cambia a ícono de cámara si hay error
+                            }}
+                          />
+                          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+
+                          </div>
 
 
 
 
 
-                        <Typography variant="body1">Frente</Typography>
-                      </>
-                    ) : (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          marginTop: 10,
-                          width: "100%",
-                          height: "100%",
-                        }}
-                      ></div>
-
-                      // se comenta a pedido de Alejandro, no quiere que se muestre un placeholder de documento
-                      // <img
-                      //   alt="Frente"
-                      //   src={logoW}
-                      //   style={{
-                      //     width: "100%",
-                      //     height: "100%",
-                      //   }}
-                      // />
-                    )}
-                  </Box>
-                </Grid>
-
-                <Grid item xs={3}>
-                  <Box mb={3} style={{ textAlign: "-webkit-center" }}>
-                    {visita.imagenDorso && visita.info ? ( // Validar visita.imagenDorso y visita.info
-                      <>
-                        <img
-                          alt="Dorso"
-                          src={visita.imagenDorso || `${dorsal}`}
+                          <Typography variant="body1">Frente</Typography>
+                        </>
+                      ) : (
+                        <div
                           style={{
+                            display: "flex",
+                            alignItems: "center",
+                            marginTop: 10,
                             width: "100%",
                             height: "100%",
                           }}
-                          onError={(e) => {
-                            e.target.onerror = null; // Evita un bucle infinito
-                            e.target.src = `${dorsal}`; // Cambia a ícono de cámara si hay error
-                          }}
-                        />
-                        <Typography variant="body1">Dorso</Typography>
-                      </>
-                    ) : (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          marginTop: 10,
-                          width: "100%",
-                          height: "100%",
-                        }}
-                      ></div>
+                        ></div>
 
-                      // se comenta a pedido de Alejandro, no quiere que se muestre un placeholder de documento
-                      // <img
-                      //     alt="Frente"
-                      //     src={logoW}
-                      //     style={{
-                      //       width: "100%",
-                      //       height: "100%",
-                      //     }}
-                      //   />
-                    )}
-                  </Box>
-                </Grid>
+                        // se comenta a pedido de Alejandro, no quiere que se muestre un placeholder de documento
+                        // <img
+                        //   alt="Frente"
+                        //   src={logoW}
+                        //   style={{
+                        //     width: "100%",
+                        //     height: "100%",
+                        //   }}
+                        // />
+                      )}
+                    </Box>
+                  </Grid>
+                )}
+                {!esTurnero && (
+                  <Grid item xs={3}>
+                    <Box mb={3} style={{ textAlign: "-webkit-center" }}>
+                      {visita.imagenDorso && visita.info ? ( // Validar visita.imagenDorso y visita.info
+                        <>
+                          <img
+                            alt="Dorso"
+                            src={visita.imagenDorso || `${dorsal}`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                            }}
+                            onError={(e) => {
+                              e.target.onerror = null; // Evita un bucle infinito
+                              e.target.src = `${dorsal}`; // Cambia a ícono de cámara si hay error
+                            }}
+                          />
+                          <Typography variant="body1">Dorso</Typography>
+                        </>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            marginTop: 10,
+                            width: "100%",
+                            height: "100%",
+                          }}
+                        ></div>
+
+                        // se comenta a pedido de Alejandro, no quiere que se muestre un placeholder de documento
+                        // <img
+                        //     alt="Frente"
+                        //     src={logoW}
+                        //     style={{
+                        //       width: "100%",
+                        //       height: "100%",
+                        //     }}
+                        //   />
+                      )}
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
               {
                 // userContext.state.rol === "Guardia" ? (
@@ -1038,29 +1130,18 @@ export default function ListaAccesoVisitantesDos() {
                   spacing={3}
                   style={{ paddingTop: 50 }}
                 >
-                  <Grid item xs={4} sm={4}>
-                    <TextField
-                      size="small"
-                      autoFocus
-                      variant="outlined"
-                      id="documento"
-                      name="documento"
-                      label="Nro. Documento"
-                      value={visitanteAcceso.documento}
-                      onChange={(value) => handleChangeNroDocumento(value)}
-                      type="text"
-                      fullWidth
-                      InputLabelProps={{
-                        style: { color: "#333" },
-                      }}
-                      InputProps={{
-                        style: { color: "#555" },
-                      }}
-                      disabled={socketConectado}
-                    />
-                    <div style={{ marginTop: 10 }}>
+                  {!esTurnero && (
+                    <Grid item xs={4} sm={4}>
                       <TextField
+                        size="small"
+                        autoFocus
                         variant="outlined"
+                        id="documento"
+                        name="documento"
+                        label="Nro. Documento"
+                        value={visitanteAcceso.documento}
+                        onChange={(value) => handleChangeNroDocumento(value)}
+                        type="text"
                         fullWidth
                         InputLabelProps={{
                           style: { color: "#333" },
@@ -1069,123 +1150,122 @@ export default function ListaAccesoVisitantesDos() {
                           style: { color: "#555" },
                         }}
                         disabled={socketConectado}
-                        size="small"
-                        label="Tipo Documento"
-                        value={visitanteAcceso?.tipoDocumento || ""}
-                        onChange={handleTipoDocumento}
-                        select
-                        SelectProps={{
-                          displayEmpty: true,
-                          renderValue: (selected) => selected,
-                        }}
-                      >
-                        <MenuItem value="DOCUMENTO DE IDENTIDAD">DOCUMENTO DE IDENTIDAD.</MenuItem>
-                        <MenuItem value="PASAPORTE">PASAPORTE</MenuItem>
-                        <MenuItem value="VISA">VISA</MenuItem>
-                      </TextField>
-                    </div>
-                    <div style={{ marginTop: 10 }}>
-                      <TextField
-                        variant="outlined"
-                        fullWidth
-                        InputLabelProps={{
-                          style: { color: "#333" },
-                        }}
-                        InputProps={{
-                          style: { color: "#555" },
-                        }}
-                        disabled={socketConectado}
-                        size="small"
-                        label="Nacionalidad"
-                        value={visitanteAcceso?.nacionalidad || ""}
-                        onChange={handleChangeNacionalidad}
-                        select
-                        SelectProps={{
-                          displayEmpty: true,
-                          renderValue: (selected) => selected || "",
-                        }}
-                      >
-                        {nacionalidadItems}
-                      </TextField>
-                    </div>
-
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginTop: 10,
-                      }}
-                    >
-                      {userContext.state.rol === "Guardia" &&
-                        userContext.state.marcacion === "Entrada" ? (
-                        <Button
-                          style={{ width: "100%", backgroundColor: userContext.state.marcacion === "Entrada" ? "rgb(139, 0, 139)" : "gray" }}
-                          color="primary"
-                          variant="contained"
-                          onClick={handleGuardar}
-                          disabled={userContext.state.marcacion !== "Entrada"}
+                      />
+                      <div style={{ marginTop: 10 }}>
+                        <TextField
+                          variant="outlined"
+                          fullWidth
+                          InputLabelProps={{
+                            style: { color: "#333" },
+                          }}
+                          InputProps={{
+                            style: { color: "#555" },
+                          }}
+                          disabled={socketConectado}
+                          size="small"
+                          label="Tipo Documento"
+                          value={visitanteAcceso?.tipoDocumento || ""}
+                          onChange={handleTipoDocumento}
+                          select
+                          SelectProps={{
+                            displayEmpty: true,
+                            renderValue: (selected) => selected,
+                          }}
                         >
-                          Procesar Entrada
-                        </Button>
-                      ) : (
-                        userContext.state.rol === "Guardia" && (
-                          <p>
-                            Debes marcar tu entrada para realizar marcaciones de
-                            visitantes
-                          </p>
-                        )
-                      )}
-                    </div>
-                  </Grid>
-                  <Grid item xs={4} sm={4}>
-                    <TextField
-                      size="small"
-                      variant="outlined"
-                      id="nombre"
-                      name="nombre"
-                      label="Nombre"
-                      value={visitanteAcceso.nombre}
-                      onChange={(value) => handleChangeNombre(value)}
-                      type="text"
-                      fullWidth
-                      InputLabelProps={{
-                        style: { color: "#333" },
-                      }}
-                      InputProps={{
-                        style: { color: "#555" },
-                      }}
-                      disabled={socketConectado}
-                    />
-                    <div style={{ marginTop: 10 }}></div>
-                    <TextField
-                      size="small"
-                      variant="outlined"
-                      id="apellido"
-                      name="apellido"
-                      label="Apellido"
-                      value={visitanteAcceso.apellido}
-                      onChange={(value) => handleChangeApellido(value)}
-                      type="text"
-                      fullWidth
-                      InputLabelProps={{
-                        style: { color: "#333" },
-                      }}
-                      InputProps={{
-                        style: { color: "#555" },
-                      }}
-                      disabled={socketConectado}
-                    />
+                          <MenuItem value="DOCUMENTO DE IDENTIDAD">DOCUMENTO DE IDENTIDAD.</MenuItem>
+                          <MenuItem value="PASAPORTE">PASAPORTE</MenuItem>
+                          <MenuItem value="VISA">VISA</MenuItem>
+                        </TextField>
+                      </div>
+                      <div style={{ marginTop: 10 }}>
+                        <TextField
+                          variant="outlined"
+                          fullWidth
+                          InputLabelProps={{
+                            style: { color: "#333" },
+                          }}
+                          InputProps={{
+                            style: { color: "#555" },
+                          }}
+                          disabled={socketConectado}
+                          size="small"
+                          label="Nacionalidad"
+                          value={visitanteAcceso?.nacionalidad || ""}
+                          onChange={handleChangeNacionalidad}
+                          select
+                          SelectProps={{
+                            displayEmpty: true,
+                            renderValue: (selected) => selected || "",
+                          }}
+                        >
+                          {nacionalidadItems}
+                        </TextField>
+                      </div>
 
-                    <Grid
-                      item
-                      sm={12}
-                      md={12}
-                      lg={12}
-                      xl={12}
-                      style={{ marginTop: 10 }}
-                    >
-                      {/*}
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          marginTop: 10,
+                        }}
+                      >
+
+
+
+
+                      </div>
+                    </Grid>
+                  )}
+                  {!esTurnero && (
+                    <Grid item xs={4} sm={4}>
+                      <TextField
+                        size="small"
+                        variant="outlined"
+                        id="nombre"
+                        name="nombre"
+                        label="Nombre"
+                        value={visitanteAcceso.nombre}
+                        onChange={(value) => handleChangeNombre(value)}
+                        type="text"
+                        fullWidth
+                        InputLabelProps={{
+                          style: { color: "#333" },
+                        }}
+                        InputProps={{
+                          style: { color: "#555" },
+                        }}
+                        disabled={socketConectado}
+                      />
+                      <div style={{ marginTop: 10 }}></div>
+                      <TextField
+                        size="small"
+                        variant="outlined"
+                        id="apellido"
+                        name="apellido"
+                        label="Apellido"
+                        value={visitanteAcceso.apellido}
+                        onChange={(value) => handleChangeApellido(value)}
+                        type="text"
+                        fullWidth
+                        InputLabelProps={{
+                          style: { color: "#333" },
+                        }}
+                        InputProps={{
+                          style: { color: "#555" },
+                        }}
+                        disabled={socketConectado}
+                      />
+
+                      <Grid
+                        item
+                        sm={12}
+                        md={12}
+                        lg={12}
+                        xl={12}
+                        style={{ marginTop: 10 }}
+                      >
+                        {/*}
                       <Autocomplete
                         id="idDependencia"
                         size="small"
@@ -1220,47 +1300,48 @@ export default function ListaAccesoVisitantesDos() {
                         )}
                       />
                       */}
-                      <Autocomplete
-                        id="idTramite"
-                        size="small"
-                        value={tramite} // ✅ Ahora está correctamente vinculado
-                        onChange={onSelectTramite}
-                        options={tramiteList?.content}
-                        getOptionLabel={(option) => option.nombre ? option.nombre : ""}
-                        renderOption={(option) => (
-                          <React.Fragment>{option?.nombre}</React.Fragment>
-                        )}
-                        isOptionDisabled={(option) => socketConectado}
-                        loading={isLoadingTramite}
-                        filterSelectedOptions
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            size="small"
-                            variant="outlined"
-                            fullWidth
-                            label="Trámite seleccionado"
-                            value={tramite?.nombre || ""} // ✅ Asegura que se refleje el trámite seleccionado
-                            InputLabelProps={{ style: { color: "#333" } }}
-                            InputProps={{ style: { color: "#555" } }}
-                            disabled
-                          />
-                        )}
-                      />
+                        <Autocomplete
+                          id="idTramite"
+                          size="small"
+                          value={tramite} // ✅ Ahora está correctamente vinculado
+                          onChange={onSelectTramite}
+                          options={tramiteList?.content}
+                          getOptionLabel={(option) => option.nombre ? option.nombre : ""}
+                          renderOption={(option) => (
+                            <React.Fragment>{option?.nombre}</React.Fragment>
+                          )}
+                          isOptionDisabled={(option) => socketConectado}
+                          loading={isLoadingTramite}
+                          filterSelectedOptions
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              size="small"
+                              variant="outlined"
+                              fullWidth
+                              label="Trámite seleccionado"
+                              value={tramite?.nombre || ""} // ✅ Asegura que se refleje el trámite seleccionado
+                              InputLabelProps={{ style: { color: "#333" } }}
+                              InputProps={{ style: { color: "#555" } }}
+                              disabled
+                            />
+                          )}
+                        />
 
+                      </Grid>
+
+                      <Grid
+                        item
+                        sm={12}
+                        md={12}
+                        lg={12}
+                        xl={12}
+                        style={{ marginTop: 10 }}
+                      >
+
+                      </Grid>
                     </Grid>
-
-                    <Grid
-                      item
-                      sm={12}
-                      md={12}
-                      lg={12}
-                      xl={12}
-                      style={{ marginTop: 10 }}
-                    >
-
-                    </Grid>
-                  </Grid>
+                  )}
 
                   {// Botones para dependencias que despues ya no se usan 
                   }
@@ -1287,6 +1368,12 @@ export default function ListaAccesoVisitantesDos() {
                   </Grid>
                   */}
                   {/* Botones de Tramites organizados en 3 columnas */}
+                  {esTurnero && visitanteAcceso.nombre && (
+                    <Typography variant="h5" align="center" style={{ marginBottom: "20px", marginTop: "20px" }}>
+                      BIENVENIDO/A {visitanteAcceso.nombre.split(" ")[0]}. ¿QUE TRAMITE DESEA SOLICITAR?
+                    </Typography>
+                  )}
+
                   <Grid container spacing={2} style={{ marginBottom: 10 }}>
                     {tramiteList?.content?.length > 0 ? (
                       tramiteList.content.map((tra) => (
@@ -1296,13 +1383,45 @@ export default function ListaAccesoVisitantesDos() {
                             variant={visitanteAcceso.idTramite === tra.id ? "contained" : "outlined"}
                             color="primary"
                             onClick={() => {
-                              setTramite(tra); // ✅ Actualiza el trámite seleccionado
+                              setTramite(tra);
                               setVisitanteAcceso((prev) => ({
                                 ...prev,
-                                idTramite: tra.id, // ✅ Guarda el id del trámite seleccionado
-                                tramiteNombre: tra.nombre, // ✅ Guarda el nombre del trámite seleccionado
+                                idTramite: tra.id,
+                                tramiteNombre: tra.nombre,
                               }));
+
+                              swal({
+                                //title: `Te doy la bienvenida ${visitanteAcceso.nombre || ""}`,
+
+                                title: ` `,
+                                text: `¿Desea solicitar un Turno para: ${tra.nombre}?`,
+                                icon: "info",
+                                buttons: {
+                                  cancel: {
+                                    text: "Cancelar",
+                                    visible: true,
+                                    closeModal: true,
+                                  },
+                                  confirm: {
+                                    text: "Confirmar",
+                                    closeModal: true,
+                                  },
+                                },
+                              }).then((confirmado) => {
+                                if (confirmado) {
+                                  handleGuardar(); // ✅ Ejecuta proceso completo
+                                } else {
+                                  // ❌ Limpia si cancela
+                                  setTramite({});
+                                  setVisitanteAcceso((prev) => ({
+                                    ...prev,
+                                    idTramite: "",
+                                    tramiteNombre: "",
+                                  }));
+                                }
+                              });
                             }}
+
                           >
                             {tra.nombre}
                           </Button>
@@ -1336,4 +1455,5 @@ export default function ListaAccesoVisitantesDos() {
       )}
     </>
   );
+
 }

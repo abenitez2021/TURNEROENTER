@@ -12,3 +12,7 @@ export class ActualizarTurnoDto {
   @IsInt()
   box?: number;
 }
+export class ReasignarTurnoDto {
+  idTurno: number;
+  idTramite: number;
+}

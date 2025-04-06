@@ -37,7 +37,8 @@ function App({ routes }) {
                 </Helmet>
                 {route?.path === "/acceder" ||
                 route?.path === "/registro-wommers" ||
-                route?.path === "/public-turnos" ? (
+                route?.path === "/public-turnos" ||
+                route?.path==="/movimientos/turnero" ? (
                   <AppLayoutPublic
                     route={route}
                     memoizedtoggleTheme={memoizedtoggleTheme}
