@@ -45,6 +45,19 @@ export default function PublicTurnos() {
       console.error("Error al obtener clima:", err);
     }
   };
+  const obtenerIconoClimaPersonalizado = (descripcion) => {
+    const desc = descripcion.toLowerCase();
+
+    if (desc.includes("lluvia")) return "/icons/animated/rainy-1.svg";
+    if (desc.includes("nieve")) return "/icons/animated/snowy-1.svg";
+    if (desc.includes("nublado")) return "/icons/animated/cloudy.svg";
+    if (desc.includes("parcialmente") || desc.includes("algo de")) return "/icons/animated/cloudy-day-1.svg";
+    if (desc.includes("despejado") || desc.includes("soleado")) return "/icons/animated/day.svg";
+    if (desc.includes("noche")) return "/icons/animated/night.svg";
+
+    return "/icons/animated/cloudy.svg"; // ícono por defecto
+  };
+
 
   const obtenerTurnos = async () => {
     try {
@@ -80,7 +93,7 @@ export default function PublicTurnos() {
       });
       setHoraActual(hora);
     }, 1000);
-    
+
     return () => {
       clearInterval(intervaloTurnos);
       clearInterval(intervaloClima);
@@ -98,7 +111,7 @@ export default function PublicTurnos() {
       <video id="bg-video" autoPlay muted loop>
         <source src="/institucional3.webm" type="video/webm" />
       </video>
-      
+
       <Box className="pantalla">
         {/* 🏢 Logo centrado */}
         <Box className="logo">
@@ -127,7 +140,7 @@ export default function PublicTurnos() {
                   <TableHead>
                     <TableRow>
                       <TableCell colSpan={3} align="center">
-                      <h1>Últimos Turnos Llamados</h1>
+                        <h1>Últimos Turnos Llamados</h1>
                       </TableCell>
                     </TableRow>
                     <TableRow>
@@ -162,11 +175,18 @@ export default function PublicTurnos() {
               <Paper elevation={3} className="panel panel-translucido clima">
                 <Typography variant="h6">🌤 Clima Actual</Typography>
                 <Typography variant="body1">{clima.ciudad}</Typography>
-                {clima.icono && <img src={clima.icono} alt="Icono del clima" className="icono-clima" />}
-                </Paper>
-                <Paper elevation={3} className="panel panel-translucido clima">
                 <Typography variant="h4">{clima.temperatura}</Typography>
                 <Typography variant="body2">{clima.descripcion}</Typography>
+                
+              </Paper>
+              <Paper elevation={3} className="panel panel-translucido clima">
+              {clima.descripcion && (
+                  <img
+                    src={obtenerIconoClimaPersonalizado(clima.descripcion)}
+                    alt={clima.descripcion}
+                    className="icono-clima"
+                  />
+                )}
               </Paper>
             </Box>
 

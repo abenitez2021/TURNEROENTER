@@ -162,3 +162,10 @@ video#bg-video {
   background-image: none !important;
   background:none !important;
 }
+
+.icono-clima {
+  width: 90px;
+  height: 90px;
+  margin: 10px auto;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.4));
+}
