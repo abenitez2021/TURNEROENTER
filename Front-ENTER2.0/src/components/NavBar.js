@@ -391,7 +391,20 @@ function NavBar() {
                   <ListItemIcon style={{ minWidth: 30 }}>
                     <DashboardIcon fontSize="small" style={{ color: "#157592" }} />
                   </ListItemIcon>
-                  <ListItemText secondary="Tablero" />
+                  <ListItemText secondary="Tablero de Visitas" />
+                </ListItem>
+              )}
+              {(userContext.state.rol === "Administrador"
+              || userContext.state.rol === "Supervisor") && (
+                <ListItem
+                  button
+                  onClick={() => history.push("/atencion")}
+                  className={pathName?.[1] === "atencion" && classes.active}
+                >
+                  <ListItemIcon style={{ minWidth: 30 }}>
+                    <DashboardIcon fontSize="small" style={{ color: "#157592" }} />
+                  </ListItemIcon>
+                  <ListItemText secondary="Tablero de Atencion" />
                 </ListItem>
               )}
             {(userContext.state.rol === "Administrador"
@@ -517,6 +530,58 @@ function NavBar() {
                     <ListItemText secondary="Permanencia" />
                   </ListItem>
                 )}
+                {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Supervisor") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/resumen/informe-movimientos/")}
+                    className={pathName?.[2] === "informe-movimientos" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Movimiento Atencion" />
+                  </ListItem>
+                )}
+                {(userContext.state.rol === "Administrador"
+                || userContext.state.rol === "Supervisor") && (
+                  <ListItem
+                    button
+                    onClick={() => history.push("/resumen/grafico-usuarios/")}
+                    className={pathName?.[2] === "grafico-usuario" && classes.active}
+                  >
+                    <ListItemIcon style={{ minWidth: 30 }}>
+                      <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                    </ListItemIcon>
+                    <ListItemText secondary="Grafico de Usuarios" />
+                  </ListItem>
+                )}
+                {(userContext.state.rol === "Administrador"
+                  || userContext.state.rol === "Supervisor") && (
+                    <ListItem
+                      button
+                      onClick={() => history.push("/resumen/grafico-tramites/")}
+                      className={pathName?.[2] === "grafico-tramites" && classes.active}
+                    >
+                      <ListItemIcon style={{ minWidth: 30 }}>
+                        <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                      </ListItemIcon>
+                      <ListItemText secondary="Grafico de Tramites" />
+                    </ListItem>
+                  )}
+                  {(userContext.state.rol === "Administrador"
+                  || userContext.state.rol === "Supervisor") && (
+                    <ListItem
+                      button
+                      onClick={() => history.push("/resumen/tiempos-espera/")}
+                      className={pathName?.[2] === "tiempos-espera" && classes.active}
+                    >
+                      <ListItemIcon style={{ minWidth: 30 }}>
+                        <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                      </ListItemIcon>
+                      <ListItemText secondary="Tiempos de Atencion" />
+                    </ListItem>
+                  )}
             </List>
 
             {userContext.state.rol === "Administrador" && (

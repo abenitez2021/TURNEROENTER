@@ -440,35 +440,38 @@ export default function Turnero() {
     }));
   };
 
-  const crearTurno = async () => {
-    let urlTurno = "http://localhost:7001/api/turnos/crear";
-
-    // ⏳ Formatear la fecha actual
+  const crearTurno = async ({ idTramite, nombre, apellido, documento, tramiteNombre }) => {
+    const urlTurno = "http://localhost:7001/api/turnos/crear";
     const fechaHora = new Date().toISOString().slice(0, 19).replace("T", " ");
 
     const turnoData = {
-      id_tramite: visitanteAcceso.idTramite,  // ✅ Usa el trámite seleccionado
-      nro_documento: visitanteAcceso.documento,
-      nombre: visitanteAcceso.nombre,
-      apellido: visitanteAcceso.apellido,
+      id_tramite: idTramite,
+      nro_documento: documento,
+      nombre,
+      apellido,
       fecha_hora: fechaHora,
       estado: "PENDIENTE",
       prioridad: "MEDIA",
-      box: 2, // ✅ Puedes ajustar el box según la lógica de tu app
+      box: 2,
     };
-    console.log("Hay en turnos", turnoData);
+
+    console.log("➡️ Enviando turno:", turnoData);
+
     try {
       const response = await axios.post(urlTurno, turnoData);
-
       if (response.status === 200 || response.status === 201) {
-        console.log("✅ Turno creado exitosamente:", response.data);
         swal("¡Turno creado exitosamente!", {
           icon: "success",
           buttons: false,
-          timer: 1500
+          timer: 1500,
         });
+        // Volver a pantalla inicial
+        setMostrarPantallaInicio(true);
+        setTramite({});
+        setVisitanteAcceso(inicialValue);
+        setVisita(inicialScannerValue);
+
       } else {
-        console.error("🚨 Error en la creación del turno:", response.data);
         notificacionAlerta("No se pudo crear el turno.");
       }
     } catch (error) {
@@ -478,6 +481,61 @@ export default function Turnero() {
   };
 
 
+  const registrarVisitaYTurno = async ({ tramite, visitante, visitas, limpiar, resetUI }) => {
+    if (!tramite?.id) {
+      swal("Es necesario seleccionar un trámite", { icon: "warning", buttons: false, timer: 1500 });
+      return;
+    }
+
+    if (!visitante.nombre || !visitante.apellido || !visitante.documento || !visitante.nacionalidad) {
+      swal("Documento no leído correctamente", { icon: "warning", buttons: false, timer: 1500 });
+      return;
+    }
+
+    const yaTieneVisitaAbierta = visitas.some(
+      (v) => v.documento === visitante.documento && v.entrada && !v.salida
+    );
+
+    if (yaTieneVisitaAbierta) {
+      swal("La persona aún no realizó su salida", { icon: "warning", buttons: false, timer: 3000 });
+      return;
+    }
+
+    // Paso 1: Registrar entrada
+    try {
+      const res = await axios.post("visitas/registrar-entrada/", { ...visitante, idDependencia: 15 });
+      if (!res.data?.ok) {
+        notificacionAlerta(res.data?.message || "Error al registrar entrada");
+        return;
+      }
+
+      await limpiar(); // Limpia lectura de SDK si todo salió bien
+
+      // Paso 2: Crear turno
+      const fechaHora = new Date().toISOString().slice(0, 19).replace("T", " ");
+      const turnoData = {
+        id_tramite: tramite.id,
+        nro_documento: visitante.documento,
+        nombre: visitante.nombre,
+        apellido: visitante.apellido,
+        fecha_hora: fechaHora,
+        estado: "PENDIENTE",
+        prioridad: "MEDIA",
+        box: 2,
+      };
+
+      const turnoRes = await axios.post("http://localhost:7001/api/turnos/crear", turnoData);
+      if (turnoRes.status === 200 || turnoRes.status === 201) {
+        swal("¡Turno creado exitosamente!", { icon: "success", buttons: false, timer: 1500 });
+        resetUI();
+      } else {
+        notificacionAlerta("No se pudo crear el turno.");
+      }
+    } catch (error) {
+      console.error("❌ Error en el flujo completo:", error);
+      alertWarningError("Error al registrar la visita o crear el turno");
+    }
+  };
 
 
 
@@ -501,7 +559,7 @@ export default function Turnero() {
     visitanteAcceso.idDependencia = 15;
     if (visitanteAcceso.nacionalidad === "") {
       // Si el idDependencia está vacío, muestra un mensaje de error
-      swal("Es necesario ingresar una nacionalidad", {
+      swal("Documento no leido correctamente", {
         icon: "warning",
         buttons: false,
         timer: 1500,
@@ -512,7 +570,7 @@ export default function Turnero() {
 
     if (visitanteAcceso.nombre === "") {
       // Si nombre está vacío, muestra un mensaje de error
-      swal("Es necesario elegir el nombre", {
+      swal("Nombre no leido", {
         icon: "warning",
         buttons: false,
         timer: 1500,
@@ -522,7 +580,7 @@ export default function Turnero() {
 
     if (visitanteAcceso.apellido === "") {
       // Si apellido está vacío, muestra un mensaje de error
-      swal("Es necesario ingresar el apellido", {
+      swal("Apellido no leido", {
         icon: "warning",
         buttons: false,
         timer: 1500,
@@ -532,7 +590,7 @@ export default function Turnero() {
 
     if (visitanteAcceso.documento === "") {
       // Si documentoestá vacío, muestra un mensaje de error
-      swal("Es necesario ingresar el nro. de documento", {
+      swal("NroDocumento no leido", {
         icon: "warning",
         buttons: false,
         timer: 1500,
@@ -584,7 +642,15 @@ export default function Turnero() {
             timer: 1500,
           });
           // 2️⃣ **Ahora creamos el turno**
-          await crearTurno();
+          await crearTurno({
+            idTramite: tramite.id,
+            nombre: visitanteAcceso.nombre,
+            apellido: visitanteAcceso.apellido,
+            documento: visitanteAcceso.documento,
+            tramiteNombre: tramite.nombre
+          });
+
+
 
         } else {
           setIsLoading(false);
@@ -825,6 +891,37 @@ export default function Turnero() {
     }
   };
 
+  useEffect(() => {
+    let timeoutId;
+
+    const resetTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        // Volver a la pantalla inicial
+        setMostrarPantallaInicio(true);
+        setMostrarInstruccionDocumento(false);
+        setVisita(inicialScannerValue);
+        setVisitanteAcceso(inicialValue);
+        setTramite({});
+        setDependencia({});
+      }, 60000); // 60 segundos
+    };
+
+    const eventos = ["click", "keydown", "mousemove", "touchstart"];
+
+    eventos.forEach(evento => {
+      window.addEventListener(evento, resetTimeout);
+    });
+
+    resetTimeout(); // inicializar por primera vez
+
+    return () => {
+      eventos.forEach(evento => {
+        window.removeEventListener(evento, resetTimeout);
+      });
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
 
   return (
@@ -1391,40 +1488,37 @@ export default function Turnero() {
                               }));
 
                               swal({
-                                //title: `Te doy la bienvenida ${visitanteAcceso.nombre || ""}`,
-
-                                title: ` `,
+                                title: "",
                                 text: `¿Desea solicitar un Turno para: ${tra.nombre}?`,
                                 icon: "info",
                                 buttons: {
-                                  cancel: {
-                                    text: "Cancelar",
-                                    visible: true,
-                                    closeModal: true,
-                                  },
-                                  confirm: {
-                                    text: "Confirmar",
-                                    closeModal: true,
-                                  },
+                                  cancel: { text: "Cancelar", visible: true },
+                                  confirm: { text: "Confirmar" },
                                 },
                               }).then((confirmado) => {
                                 if (confirmado) {
-                                  handleGuardar(); // ✅ Ejecuta proceso completo
+                                  registrarVisitaYTurno({
+                                    tramite: tra,
+                                    visitante: visitanteAcceso,
+                                    visitas: data.content,
+                                    limpiar: getLimpiarLecturaFisica,
+                                    resetUI: () => {
+                                      setMostrarPantallaInicio(true);
+                                      setTramite({});
+                                      setVisitanteAcceso(inicialValue);
+                                      setVisita(inicialScannerValue);
+                                    }
+                                  });
                                 } else {
-                                  // ❌ Limpia si cancela
                                   setTramite({});
-                                  setVisitanteAcceso((prev) => ({
-                                    ...prev,
-                                    idTramite: "",
-                                    tramiteNombre: "",
-                                  }));
+                                  setVisitanteAcceso((prev) => ({ ...prev, idTramite: "", tramiteNombre: "" }));
                                 }
                               });
                             }}
-
                           >
                             {tra.nombre}
                           </Button>
+
                         </Grid>
                       ))
                     ) : (

@@ -19,6 +19,12 @@ import ListaPuntos from "./page/gestion/ListaPuntos";
 import NuevoPunto from "./page/gestion/NuevoPunto";
 import LlamadorTurnos from "./page/movimientos/LlamadorTurnos";
 import PublicTurnos from "./page/PublicTurnos";
+import TableroAtencion from "./page/TableroAtencion";
+import InformeMovimientos from "./page/servicios/InformeMovimientos";
+import InformeGraficoUsuarios from "./page/servicios/InformeGraficoUsuarios"
+import InformeGraficoTramites from "./page/servicios/InformeGraficoTramites"
+import InformeTiemposEspera from "./page/servicios/InformeTiemposEspera"
+
 export const routes = [
   {
     path: "/",
@@ -29,6 +35,12 @@ export const routes = [
     path: "/public-turnos",
     label: "Pantalla Pública",
     component: PublicTurnos,
+  },
+  {
+    path: "/atencion",
+   
+    label: "Tablero de Atencion",
+    component: TableroAtencion,
   },
   
   {
@@ -127,6 +139,27 @@ export const routes = [
     label: "Permanencia",
     component: ListaPermanenciaDia,
   },
+  {
+    path: "/resumen/informe-movimientos",
+    label: "Informe Atencion",
+    component: InformeMovimientos,
+  },
+  {
+    path: "/resumen/grafico-usuarios",
+    label: "Grafico Usuarios",
+    component: InformeGraficoUsuarios,
+  },
+  {
+    path: "/resumen/grafico-tramites",
+    label: "Grafico Tramites",
+    component: InformeGraficoTramites,
+  },
+  {
+    path: "/resumen/tiempos-espera",
+    label: "Grafico Tiempos",
+    component: InformeTiemposEspera,
+  },
+  
   {
     path: "*",
     label: "Error en la página",

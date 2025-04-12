@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Body, Injectable, Logger, Post, Req } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CrearTurnoDto } from './dto/crear-turno.dto';
 
@@ -56,6 +56,35 @@ export class TurnosService {
         }
     }
 
+
+
+
+    //historial extendido del turno 
+    async obtenerHistorialExtendido(idTurno: number) {
+        const query = `
+          SELECT 
+            ht.id_turno,
+            ht.codigo_turno,
+            ht.estado,
+            ht.comentario,
+            ht.fecha,
+            ht.origen,
+            ht.id_usuario,
+            u.nombre AS nombre_usuario,
+            t.nombre AS nombre_tramite,
+            ht.id_tramite_anterior,
+            ht.id_tramite_nuevo
+          FROM historial_turnos ht
+          LEFT JOIN usuarios u ON u.id = ht.id_usuario
+          LEFT JOIN tramites t ON t.id = ht.id_tramite_nuevo
+          WHERE ht.codigo_turno = (
+            SELECT codigo_turno FROM turnos WHERE id = ?
+          )
+          ORDER BY ht.fecha ASC;
+        `;
+
+        return await this.dataSource.query(query, [idTurno]);
+    }
 
     //Historial del turno 
     async registrarHistorialTurno(dto: HistorialTurnoDto) {
@@ -270,7 +299,7 @@ export class TurnosService {
                 imagenDorso: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/dorso.png`,
                 nombre_visitante: visita.nombre, // 🔥 estos dos son clave para que el frontend los lea bien
                 apellido_visitante: visita.apellido,
-                
+
                 // 🔁 Datos de la transferencia (si los hay)
                 tramite_anterior: tramiteAnterior,
                 box_anterior: boxAnterior,
@@ -292,55 +321,109 @@ export class TurnosService {
 
     // 📌 Llamar Turno (Actualizar estado a ATENDIENDO)
     // 📌 Llamar Turno (Actualizar estado a ATENDIENDO)
-async llamarTurno(id: number, box: number) {
-    try {
-      // ✅ Aceptar turnos en estado PENDIENTE o REASIGNADO
-      const turno = await this.dataSource.query(
-        `SELECT * FROM turnos WHERE id = ? AND estado IN ('PENDIENTE', 'REASIGNADO')`,
-        [id]
-      );
-  
-      if (turno.length === 0) {
-        return { ok: false, message: 'El turno no está disponible o ya ha sido atendido.' };
-      }
-  
-      const turnoData = turno[0];
-  
-      // 🔄 Actualizar a ATENDIENDO
-      await this.dataSource.query(
-        `UPDATE turnos SET estado = 'ATENDIENDO', fecha_llamado = NOW(), box = ? WHERE id = ?`,
-        [box, id]
-      );
-  
-      // 📸 Obtener imágenes
-      const sp = 'call sp_visitas_buscar_list(?)';
-      const parametros = [turnoData.documento];
-      const result = await this.dataSource.query(sp, parametros);
-      const visita = result[0][0]; // asumimos que siempre hay una visita
-  
-      const turnoConImagenes = {
-        ...turnoData,
-        nro_documento: visita.documento,
-        id_visita: visita.idVisita,
-        foto: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/foto.png`,
-        imagenFrente: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/frente.png`,
-        imagenDorso: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/dorso.png`
-      };
-  
-      return {
-        ok: true,
-        message: 'Turno llamado correctamente.',
-        turno: turnoConImagenes
-      };
-    } catch (error) {
-      this.logger.error('❌ Error al llamar turno', error);
-      return { ok: false, message: 'No se pudo llamar el turno.' };
+    async llamarTurno(id: number, box: number) {
+        try {
+            // ✅ Aceptar turnos en estado PENDIENTE o REASIGNADO
+            const turno = await this.dataSource.query(
+                `SELECT * FROM turnos WHERE id = ? AND estado IN ('PENDIENTE', 'REASIGNADO')`,
+                [id]
+            );
+
+            if (turno.length === 0) {
+                return { ok: false, message: 'El turno no está disponible o ya ha sido atendido.' };
+            }
+
+            const turnoData = turno[0];
+
+            // 🔄 Actualizar a ATENDIENDO
+            await this.dataSource.query(
+                `UPDATE turnos SET estado = 'ATENDIENDO', fecha_llamado = NOW(), box = ? WHERE id = ?`,
+                [box, id]
+            );
+
+            // 📸 Obtener imágenes
+            const sp = 'call sp_visitas_buscar_list(?)';
+            const parametros = [turnoData.documento];
+            const result = await this.dataSource.query(sp, parametros);
+            const visita = result[0][0]; // asumimos que siempre hay una visita
+
+            const turnoConImagenes = {
+                ...turnoData,
+                nro_documento: visita.documento,
+                id_visita: visita.idVisita,
+                foto: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/foto.png`,
+                imagenFrente: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/frente.png`,
+                imagenDorso: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/dorso.png`
+            };
+
+            return {
+                ok: true,
+                message: 'Turno llamado correctamente.',
+                turno: turnoConImagenes
+            };
+        } catch (error) {
+            this.logger.error('❌ Error al llamar turno', error);
+            return { ok: false, message: 'No se pudo llamar el turno.' };
+        }
     }
-  }
-  
 
 
 
+    // agregar notas al turno 
+    // ✅ Nuevo endpoint para agregar notas al historial sin alterar estado
+    @Post('historial/nota')
+    // turnos.service.ts
+
+    async agregarNotaHistorial(
+        idTurno: number,
+        comentario: string,
+        id_usuario: number,
+        ip: string
+    ) {
+        // Obtener el estado actual del turno
+        const turno = await this.dataSource.query(
+            `SELECT estado, codigo_turno, box FROM turnos WHERE id = ?`,
+            [idTurno]
+        );
+
+        if (turno.length === 0) {
+            return { ok: false, message: "El turno no existe" };
+        }
+
+        const turnoActual = turno[0];
+
+        try {
+            await this.dataSource.query(
+                `
+        INSERT INTO historial_turnos (
+          id_turno, codigo_turno, estado, comentario, fue_reasignado, 
+          id_tramite_anterior, id_tramite_nuevo, llamado_numero, 
+          duracion_atencion, id_puntoatencion, id_usuario, origen, ip_cliente
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+                [
+                    idTurno,
+                    turnoActual.codigo_turno,
+                    turnoActual.estado,
+                    `NOTA: ${comentario}`,
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    turnoActual.box || null,
+                    id_usuario,
+                    'NOTA',
+                    ip
+                ]
+            );
+
+            return { ok: true, message: "Nota agregada correctamente." };
+        } catch (error) {
+            console.error("❌ Error al guardar nota:", error);
+            return { ok: false, message: "No se pudo guardar la nota." };
+        }
+    }
 
 
     // turnos.service.ts
@@ -376,25 +459,36 @@ async llamarTurno(id: number, box: number) {
             if (!turnoOriginal.length) return { ok: false, message: 'No se encontró el turno a reasignar.' };
 
             const turno = turnoOriginal[0];
+
+            // Obtener nombre del trámite anterior
+            const tramiteAnterior = await this.dataSource.query(`SELECT nombre FROM tramites WHERE id = ?`, [turno.id_tramite]);
+            const nombreTramiteAnterior = tramiteAnterior.length ? tramiteAnterior[0].nombre : 'Desconocido';
+
+            // Obtener nombre del trámite nuevo
             const tramiteNuevo = await this.dataSource.query(`SELECT nombre FROM tramites WHERE id = ?`, [idTramiteNuevo]);
             if (!tramiteNuevo.length) return { ok: false, message: 'No se encontró el nuevo trámite.' };
-
             const nombreTramiteNuevo = tramiteNuevo[0].nombre;
 
+            // Finalizar el turno anterior
             await this.dataSource.query(`UPDATE turnos SET estado = 'FINALIZADO', fecha_finalizacion = NOW() WHERE id = ?`, [idTurno]);
 
+            // Insertar el nuevo turno
             const resultInsert = await this.dataSource.query(
                 `INSERT INTO turnos (id_visita, codigo_turno, estado, tramite, fecha_emision, id_tramite, box, turno_origen_id)
-                 VALUES (?, ?, 'REASIGNADO', ?, NOW(), ?, ?, ?)`,
+             VALUES (?, ?, 'REASIGNADO', ?, NOW(), ?, ?, ?)`,
                 [turno.id_visita, turno.codigo_turno, nombreTramiteNuevo, idTramiteNuevo, turno.box || null, idTurno]
             );
             const nuevoTurnoId = resultInsert.insertId;
 
+            // Construir comentario compuesto
+            const comentarioFinal = `Reasignado de ${nombreTramiteAnterior} a ${nombreTramiteNuevo}. Comentario: ${comentario || 'Sin comentario'}`;
+
+            // Registrar historial
             await this.registrarHistorialTurno({
                 id_turno: nuevoTurnoId,
                 codigo_turno: turno.codigo_turno,
                 estado: 'REASIGNADO',
-                comentario: comentario || `Reasignado desde turno ${idTurno} al trámite ${nombreTramiteNuevo}`,
+                comentario: comentarioFinal,
                 fue_reasignado: true,
                 id_tramite_anterior: turno.id_tramite,
                 id_tramite_nuevo: idTramiteNuevo,
@@ -463,13 +557,17 @@ async llamarTurno(id: number, box: number) {
 
 
     // 📌 Finalizar Turno y Registrar Salida
-    async finalizarTurno(id: number, idUsuario: number, ip: string) {
+    async finalizarTurno(id: number, idUsuario: number, ip: string, comentarioPersonalizado?: string) {
         try {
             // Obtener turno con detalles
             const turnoResult = await this.dataSource.query(`SELECT * FROM turnos WHERE id = ?`, [id]);
             if (!turnoResult.length) return { ok: false, message: 'No se encontró el turno.' };
 
             const turno = turnoResult[0];
+
+            // Obtener nombre del trámite
+            const tramiteRes = await this.dataSource.query(`SELECT nombre FROM tramites WHERE id = ?`, [turno.id_tramite]);
+            const nombreTramite = tramiteRes.length ? tramiteRes[0].nombre : 'Trámite desconocido';
 
             // Finalizar el turno
             await this.dataSource.query(`CALL sp_turnos_finalizar(?)`, [id]);
@@ -483,6 +581,9 @@ async llamarTurno(id: number, box: number) {
                 ? Math.floor((new Date().getTime() - new Date(turno.fecha_llamado).getTime()) / 60000)
                 : null;
 
+            // Comentario dinámico
+            const comentarioFinal = `Turno finalizado. Trámite: ${nombreTramite}. Comentario: ${comentarioPersonalizado || 'Sin comentario'}`;
+
             // Insertar en historial_turnos
             await this.dataSource.query(`
             INSERT INTO historial_turnos (
@@ -494,7 +595,7 @@ async llamarTurno(id: number, box: number) {
                 id,
                 turno.codigo_turno,
                 'FINALIZADO',
-                'Turno finalizado con éxito.',
+                comentarioFinal,
                 false,
                 turno.id_tramite,
                 turno.id_tramite,

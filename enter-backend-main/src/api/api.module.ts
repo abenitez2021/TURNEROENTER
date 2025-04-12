@@ -42,6 +42,13 @@ import { PuntoAtencionModule } from './puntoatencion/puntoatencion.module';
 import { PuntoAtencionController } from './puntoatencion/puntoatencion.controller';
 import { PuntoAtencionService } from './puntoatencion/puntoatencion.service';
 
+//informes
+
+import { InformesController } from './informes/informes.controller';
+import { InformesService } from './informes/informes.service';
+import {InformesModule} from'./informes/informes.module';
+
+
 @Module({
     imports: [
         AuthModule,
@@ -49,7 +56,7 @@ import { PuntoAtencionService } from './puntoatencion/puntoatencion.service';
         MulterModule.register(),
         TypeOrmModule.forFeature([
             UsuarioEntity
-        ]),TramitesModule, TurnosModule
+        ]),TramitesModule, TurnosModule, InformesModule,
         // FirebaseModule
     ],
     controllers: [
@@ -65,7 +72,10 @@ import { PuntoAtencionService } from './puntoatencion/puntoatencion.service';
         RolespantallasController,
         TurnosController, // ✅ Agregado
         TramitesController, // ✅ Agregado
-        PuntoAtencionController
+        PuntoAtencionController,
+        InformesController,
+
+        
     ],
     providers: [
         MarcacionService,
@@ -80,7 +90,9 @@ import { PuntoAtencionService } from './puntoatencion/puntoatencion.service';
         RolespantallasService,
         TurnosService, // ✅ Agregado
         TramitesService, // ✅ Agregado
-        PuntoAtencionService
+        PuntoAtencionService,
+        InformesService,
+        
     ]
 })
 export class ApiModule {}

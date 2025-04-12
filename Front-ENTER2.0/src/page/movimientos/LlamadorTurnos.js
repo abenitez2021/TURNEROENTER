@@ -37,6 +37,7 @@ import axios from "../../utils/axios";
 import { alertWarningError } from "../../components/Notificaciones";
 
 import { TextField } from "@material-ui/core";
+import UserContext from "../../utils/user/UserContext";
 
 export default function LlamadorTurnos() {
   const [puntosAtencion, setPuntosAtencion] = useState([]);
@@ -53,8 +54,19 @@ export default function LlamadorTurnos() {
 
   const [turnoParaTransferir, setTurnoParaTransferir] = useState(null);
 
+  const [notaDialogOpen, setNotaDialogOpen] = useState(false);
+  const [turnoParaNota, setTurnoParaNota] = useState(null);
+  const [textoNota, setTextoNota] = useState("");
 
 
+  const rawJwt = sessionStorage.getItem("jwt-wom");
+  const usuarioLogueado = rawJwt ? JSON.parse(JSON.parse(rawJwt).user ? rawJwt : "{}").user : null;
+
+
+
+  const [turnoHistorial, setTurnoHistorial] = useState(null);
+
+  // console.log(usuarioLogueado.id);
 
 
   useEffect(() => {
@@ -196,6 +208,46 @@ export default function LlamadorTurnos() {
   };
 
 
+  //agrupar el historial
+  const agruparPorTurno = (historial) => {
+    return historial.reduce((acc, item) => {
+      const id = item.id_turno;
+      if (!acc[id]) acc[id] = [];
+      acc[id].push(item);
+      return acc;
+    }, {});
+  };
+
+
+
+  const [historialCompleto, setHistorialCompleto] = useState([]);
+  const [dialogHistorialOpen, setDialogHistorialOpen] = useState(false);
+
+
+
+  const verHistorialCompleto = async (turnoVista) => {
+    try {
+      const turnoId = turnoVista.id_turno || turnoVista.id;
+      if (!turnoId) {
+        console.error("❌ ID de turno inválido");
+        return;
+      }
+      const res = await axios.get(`turnos/historial/completo/${turnoId}`);
+
+      if (res.data?.ok) {
+        setTurnoHistorial(turnoVista);
+        setHistorialCompleto(res.data.historial);
+        setDialogHistorialOpen(true);
+      } else {
+        alertWarningError({ data: { message: "No se pudo cargar el historial completo" } });
+      }
+    } catch (err) {
+      console.error("❌ Error al obtener historial:", err);
+      alertWarningError({ data: { message: "Error inesperado al obtener historial" } });
+    }
+  };
+
+
   const transferirTurno = (turno) => {
     setTurnoActual(turno);
     setNuevoTramite(""); // Opcional: limpia la selección previa
@@ -204,28 +256,65 @@ export default function LlamadorTurnos() {
 
 
   const agregarNota = (turno) => {
-    console.log("📝 Agregar nota al turno:", turno);
-    // Aquí podrías abrir un modal para escribir una nota
+    setTurnoParaNota(turno);
+    setTextoNota("");
+    setNotaDialogOpen(true);
   };
 
 
 
 
+  const handleGuardarNota = async () => {
+    if (!textoNota || !turnoParaNota) {
+      alertWarningError({ data: { message: "Debe escribir una nota." } });
+      return;
+    }
+
+    try {
+
+      const res = await axios.post("turnos/historial/nota", {
+        idTurno: turnoParaNota.id_turno || turnoParaNota.id,
+        comentario: textoNota,
+        id_usuario: usuarioLogueado.id,
+
+      });
+      console.log("turno", turnoParaNota.id_turno, "comentario: ", comentario, "usuario", usuarioLogueado.id);
+
+      if (res.data?.ok) {
+        swal("Nota agregada", res.data.message, "success");
+        setNotaDialogOpen(false);
+        setTextoNota("");
+        setTurnoParaNota(null);
+      } else {
+        alertWarningError({ data: { message: res.data.message || "No se pudo guardar la nota." } });
+      }
+    } catch (err) {
+      console.error("❌ Error al guardar nota:", err);
+      alertWarningError({
+        data: { message: err?.response?.data?.message || "Error inesperado.", level: "error" }
+      });
+    }
+  };
+
+
+
   const handleConfirmarTransferencia = async () => {
     const turno = turnoActual || turnoParaTransferir;
-  
+
     if (!turno || !nuevoTramite) {
       alertWarningError({ data: { message: "Debe seleccionar un nuevo trámite." } });
       return;
     }
-  
+
     try {
       const res = await axios.put("turnos/reasignar", {
         idTurno: turno.id_turno || turno.id,
         idTramite: nuevoTramite,
-        comentario
+        comentario,
+        id_usuario: usuarioLogueado.id
       });
-  
+
+
       if (res.data?.ok) {
         swal("¡Reasignación exitosa!", { icon: "success", buttons: false, timer: 1500 });
         setTurnoActual(null);
@@ -245,7 +334,7 @@ export default function LlamadorTurnos() {
       });
     }
   };
-  
+
   const llamarTurno = async (turno) => {
     if (!puntoSeleccionado) {
       alertWarningError({
@@ -256,19 +345,21 @@ export default function LlamadorTurnos() {
       });
       return;
     }
-  
+
     try {
       const payload = {
         id: turno.id_turno || turno.id,        // 👈 debe coincidir con el backend
         box: Number(puntoSeleccionado)         // 👈 asegurar que sea número
+        //id_usuario: usuarioLogueado.id
+
       };
-  
+
       console.log("📨 Enviando a turnos/llamar:", payload);
-  
+
       const response = await axios.post("turnos/llamar", payload);
-  
+
       console.log("✅ Respuesta del backend:", response.data);
-  
+
       if (response?.data?.ok) {
         const turnoConDatosCompletos = {
           ...response.data.turno,
@@ -279,10 +370,10 @@ export default function LlamadorTurnos() {
           box: puntoSeleccionado,
           id_turno: turno.id_turno
         };
-  
+
         setTurnoActual(turnoConDatosCompletos);
         cargarTurnosPendientes();
-  
+
       } else {
         alertWarningError({
           data: {
@@ -302,15 +393,19 @@ export default function LlamadorTurnos() {
       });
     }
   };
-  
+
 
   const finalizarTurno = async () => {
     if (!turnoActual) return;
 
     try {
       const res = await axios.post("turnos/finalizar", {
-        id: turnoActual.id
+        id: turnoActual.id,
+        idUsuario: usuarioLogueado.id,
+        comentario: comentario || "",
+        ip: "127.0.0.1" // Como mejora se debe requerir la ip desde el backend
       });
+
 
       if (res.data?.ok) {
         setTurnoActual(null);
@@ -356,8 +451,10 @@ export default function LlamadorTurnos() {
     const datos = {
       idTurno: turnoActual.id_turno,
       idTramite: nuevoTramite,
-      comentario
+      comentario,
+      id_usuario: usuarioLogueado.id
     };
+
 
     console.log("📤 Enviando al backend para reasignar:", datos);
 
@@ -435,7 +532,10 @@ export default function LlamadorTurnos() {
 
       <Grid item xs={12}>
         <Paper elevation={3} style={{ padding: 20 }}>
-          <Typography variant="h6">Turnos Pendientes</Typography>
+          <Typography variant="h6">
+            Turnos Pendientes ({turnosPendientes.length})
+          </Typography>
+
           <Grid container spacing={2}>
             {turnosPendientes.map((turno) => {
               const minutosEspera = calcularTiempoEspera(turno.fecha_emision); // función auxiliar
@@ -467,6 +567,9 @@ export default function LlamadorTurnos() {
                     )}
                     <Typography variant="body2">
                       <strong>HORA DE LLEGADA:</strong> {formatearHora(turno.fecha_emision)}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>ESTADO:{turno.estado}</strong>
                     </Typography>
 
                     {/* BOTONES */}
@@ -572,11 +675,12 @@ export default function LlamadorTurnos() {
             <b>Nro. Documento:</b> {turnoVista?.nro_documento}
           </Typography>
           <Typography variant="subtitle1">
-            <b>Transferido desde:</b>
-            {turnoVista?.tramite_anterior && turnoVista?.box_anterior
-              ? `${turnoVista.tramite_anterior} en ${turnoVista.box_anterior}`
+            <b>Transferido desde:</b>{" "}
+            {turnoVista?.tramite_anterior || turnoVista?.box_anterior
+              ? `${turnoVista?.tramite_anterior || "Trámite desconocido"} en ${turnoVista?.box_anterior || "Box desconocido"}`
               : "No aplica"}
           </Typography>
+
           <Typography variant="subtitle1">
             <b>Hora de llegada:</b> {formatearHora(turnoVista?.fecha_emision)}
           </Typography>
@@ -586,6 +690,16 @@ export default function LlamadorTurnos() {
         </DialogContent>
 
         <DialogActions>
+          <Button
+            fullWidth
+            variant="outlined"
+            color="primary"
+            onClick={() => verHistorialCompleto(turnoVista)}
+          >
+            Ver Más
+          </Button>
+
+
           <Button onClick={() => setTurnoVista(null)} color="primary" variant="contained">
             Cerrar
           </Button>
@@ -691,8 +805,73 @@ export default function LlamadorTurnos() {
 
 
 
-            
+
             Reasignar Atención
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={dialogHistorialOpen}
+        onClose={() => setDialogHistorialOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Historial Completo del Turno: {turnoHistorial?.codigo_turno}
+        </DialogTitle>
+
+        <DialogContent dividers>
+          {historialCompleto.length === 0 ? (
+            <Typography variant="body2">No hay historial disponible.</Typography>
+          ) : (
+            Object.entries(agruparPorTurno(historialCompleto)).map(([idTurno, items], idx) => (
+              <Paper
+                key={idTurno}
+                style={{
+                  marginBottom: 16,
+                  padding: 8,
+                  backgroundColor: Number(idTurno) === turnoHistorial?.id_turno ? "#e3f2fd" : "#f9f9f9",
+                  borderLeft: Number(idTurno) === turnoHistorial?.id_turno ? "6px solid #1976d2" : "4px solid #ccc"
+                }}
+                elevation={2}
+              >
+                <Typography variant="subtitle1" style={{ marginBottom: 8 }}>
+                  <b>Turno ID:</b> {idTurno} {Number(idTurno) === turnoHistorial?.id_turno && "(Turno actual)"}
+                </Typography>
+
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><b>Fecha</b></TableCell>
+                      <TableCell><b>Estado</b></TableCell>
+                      <TableCell><b>Comentario</b></TableCell>
+                      <TableCell><b>Origen</b></TableCell>
+                      <TableCell><b>Usuario</b></TableCell>
+                      <TableCell><b>Trámite</b></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {items.map((h, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{new Date(h.fecha).toLocaleString()}</TableCell>
+                        <TableCell>{h.estado}</TableCell>
+                        <TableCell>{h.comentario}</TableCell>
+                        <TableCell>{h.origen}</TableCell>
+                        <TableCell>{h.nombre_usuario || '---'}</TableCell>
+                        <TableCell>{h.nombre_tramite || '---'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Paper>
+            ))
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setDialogHistorialOpen(false)} color="primary" variant="contained">
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>
@@ -700,7 +879,9 @@ export default function LlamadorTurnos() {
 
       <Dialog
         open={!!turnoActual}
-        onClose={() => setTurnoActual(null)}
+        // 🔒 Evita cerrar con tecla ESC o clic fuera del modal
+        disableEscapeKeyDown
+        onClose={null} // Esto anula el comportamiento por defecto de cierre
         maxWidth="sm"
         fullWidth
       >
@@ -770,6 +951,44 @@ export default function LlamadorTurnos() {
         </DialogActions>
 
       </Dialog>
+
+      <Dialog
+        open={notaDialogOpen}
+        onClose={() => setNotaDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Agregar Nota al Turno</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="subtitle1">
+            <b>Turno:</b> {turnoParaNota?.codigo_turno}
+          </Typography>
+          <Typography variant="subtitle1">
+            <b>Visitante:</b> {turnoParaNota?.nombre_visitante} {turnoParaNota?.apellido_visitante}
+          </Typography>
+
+          <TextField
+            fullWidth
+            label="Nota"
+            variant="outlined"
+            style={{ marginTop: 16 }}
+            multiline
+            minRows={3}
+            value={textoNota}
+            onChange={(e) => setTextoNota(e.target.value)}
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setNotaDialogOpen(false)} color="secondary" variant="outlined">
+            Cancelar
+          </Button>
+          <Button onClick={handleGuardarNota} color="primary" variant="contained">
+            Guardar Nota
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Grid>
   );
 }
