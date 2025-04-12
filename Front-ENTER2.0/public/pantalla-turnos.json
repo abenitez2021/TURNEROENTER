@@ -1,0 +1,31 @@
+{
+  "colores": {
+    "fondo": "#f0f0f0",
+    "barraSuperior": "#004080",
+    "textoBarra": "#ffffff",
+    "turnoEnPantalla": "#00695c",
+    "tablaCabecera": "#1976d2",
+    "tablaTexto": "#000000"
+  },
+  "institucional": {
+    "logo": "/empresa.jpg",
+    "video": "/video.mkv",
+    "mensajeRotativo": [
+      "Bienvenidos al sistema de turnos",
+      "Por favor, espere a ser llamado",
+      "Horario de atención de 07:00 a 15:00",
+      "Síganos en redes sociales para novedades"
+    ]
+  },
+  "parametros": {
+    "reloj": true,
+    "clima": true,
+    "sintesisVoz": true,
+    "animacionTurno": true
+  },
+  "redesSociales": {
+    "mostrarNoticias": true,
+    "fuenteNoticias": "rss",
+    "urlRSS": "https://www.abc.com.py/rss/feed.xml"
+  }
+}

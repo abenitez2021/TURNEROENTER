@@ -31,7 +31,8 @@ const useStyles = makeStyles((theme) => ({
     height: "auto",
 
     backgroundRepeat: 'no-repeat',
-    backgroundImage: `url(${Background})`,
+    backgroundImage: `none`,
+   // backgroundImage: `url(${Background})`,
     backgroundSize: "100% 100%",
 
   },
