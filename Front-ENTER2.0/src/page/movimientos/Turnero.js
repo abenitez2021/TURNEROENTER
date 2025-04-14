@@ -2,15 +2,12 @@ import React, { useEffect, useState, useContext, useRef } from "react";
 import Stomp from "stompjs";
 import SockJS from "sockjs-client";
 
-import { MakeTables } from "../../components/MaterialTables/MakeTables";
 import { useStyles } from "../../assets/styles/CustomStyles";
 import { useHistory } from "react-router-dom";
 import axios from "../../utils/axios";
-import { Typography, Chip } from "@material-ui/core";
+import { Typography } from "@material-ui/core";
 import {
   alertWarningError,
-  notificacionEliminar,
-  notificacionExitosa,
 } from "../../components/Notificaciones";
 import AccesoDenegado from "../../components/AccesoDenegado";
 import UserContext from "../../utils/user/UserContext";
@@ -20,13 +17,9 @@ import TextField from "@material-ui/core/TextField";
 import {
   Grid,
   Box,
-  Select,
-  FormControl,
-  InputLabel,
   MenuItem,
   ListItemIcon,
 } from "@material-ui/core";
-import SearchIcon from "@material-ui/icons/Search";
 import { red } from "@material-ui/core/colors";
 import swal from "sweetalert";
 import IconButton from "@material-ui/core/IconButton";
@@ -38,12 +31,9 @@ import { notificacionAlerta } from "../../components/Notificaciones";
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
-import AvatarIcon from "../../assets/images/avatar.png";
 import Autocomplete from "@material-ui/lab/Autocomplete";
-import CircularProgress from "@material-ui/core/CircularProgress";
 import FiberManualRecordIcon from "@material-ui/icons/FiberManualRecord";
 import Logo from "../../assets/images/logo-color.png";
-import jsPDF from "jspdf";
 import { MuiPickersUtilsProvider, DatePicker } from "@material-ui/pickers";
 import DateFnsUtils from "@date-io/date-fns";
 import esLocale from "date-fns/locale/es";
@@ -54,7 +44,6 @@ import dorsal from "../../assets/images/ci_dorsal.png";
 import foto from "../../assets/images/avatar.png"
 import flecha from "../../assets/images/flecha_abajo.png"
 
-import NavBar from "../../components/NavBar";
 
 
 
@@ -130,6 +119,8 @@ export default function Turnero() {
   const [mostrarInstruccionDocumento, setMostrarInstruccionDocumento] = useState(false);
   const esTurnero = userContext.state.rol === "TURNERO";
 
+    // 💾 REF para evitar duplicados (declarar arriba del componente)
+    const ultimoTransactionIdRef = useRef(null);
 
   // hasta aqui
 
@@ -251,7 +242,105 @@ export default function Turnero() {
 
 
 
+
+
+  // 🔧 NUEVA FUNCIÓN: Registrar error de lectura (bloqueante)
+  const registrarErrorLectura = async (resultadoLectura, resetearUI = true) => {
+    const transactionId = resultadoLectura?.info?.TransactionID;
+
+    // ⛔️ Evitar múltiples registros
+    if (transactionId && transactionId === ultimoTransactionIdRef.current) {
+      console.log("⛔ Ya registrado:", transactionId);
+      return true; // retornamos true para evitar continuar
+    }
+
+    const erroresBloqueantes = [];
+    const erroresPermitidos = [];
+    const descripcion = [];
+
+    if (!resultadoLectura?.nombre) {
+      descripcion.push("falta nombre");
+      erroresBloqueantes.push("falta nombre");
+    }
+    if (!resultadoLectura?.apellido) {
+      descripcion.push("falta apellido");
+      erroresBloqueantes.push("falta apellido");
+    }
+    if (!resultadoLectura?.documento) {
+      descripcion.push("falta número de documento");
+      erroresBloqueantes.push("falta número de documento");
+    }
+
+    if (!resultadoLectura?.foto) {
+      descripcion.push("falta foto");
+      erroresPermitidos.push("falta foto");
+    }
+    if (!resultadoLectura?.imagenFrente) {
+      descripcion.push("falta foto frente");
+      erroresPermitidos.push("falta foto frente");
+    }
+    if (!resultadoLectura?.imagenDorso) {
+      descripcion.push("falta foto dorso");
+      erroresPermitidos.push("falta foto dorso");
+    }
+
+    const descripcion_error = descripcion.join(", ");
+    const jsonCompleto = {
+      correcto: "S",
+      conPayload: "S",
+      payload: {
+        result: resultadoLectura,
+        ok: true,
+        message: "archivo json leido correctamente.",
+      },
+      fechaHora: new Date().toLocaleString("es-PY"),
+      idPuesto: resultadoLectura?.info?.DeviceLabelNumber || "1",
+    };
+
+    const body = {
+      idPuesto: parseInt(resultadoLectura?.info?.DeviceLabelNumber || 1),
+      jsonCompleto,
+      descripcion_error,
+      foto: resultadoLectura?.foto || "",
+      imagenFrente: resultadoLectura?.imagenFrente || "",
+      imagenDorso: resultadoLectura?.imagenDorso || "",
+    };
+
+    try {
+      await axios.post("http://localhost:7001/api/errores/registrar", body);
+      console.log("📤 Error registrado exitosamente:", body);
+      // 🧠 Guardamos este ID para evitar futuros duplicados
+      if (transactionId) ultimoTransactionIdRef.current = transactionId;
+    } catch (error) {
+      console.error("❌ Error al registrar error de lectura:", error);
+      alertWarningError("No se pudo registrar el error de lectura.");
+    }
+
+    // Si hay errores bloqueantes, mostrar alerta y limpiar
+    if (erroresBloqueantes.length > 0 && resetearUI) {
+      await swal({
+        title: "Lectura incorrecta del documento",
+        text: "Se detectaron datos incompletos. Por favor, vuelva a insertar la cédula",
+        icon: "warning",
+        button: "Aceptar",
+      });
+
+      await getLimpiarLecturaFisica();
+      setMostrarInstruccionDocumento(true);
+      setVisitanteAcceso(inicialValue);
+      setVisita(inicialScannerValue);
+    }
+
+    return erroresBloqueantes.length > 0;
+  };
+
+
+
+
+
   const getObtenerMarcación = async (idPuesto) => {
+
+
     setIsLoading(true);
 
     idPuesto = idPuesto || null;
@@ -259,6 +348,7 @@ export default function Turnero() {
     let url = "visitas/sdk-archivo/";
     try {
       const response = await axios.post(url, { idPuesto: idPuesto });
+
       let status = response.status;
       if (status === 200) {
         const pedidos = response.data;
@@ -266,6 +356,7 @@ export default function Turnero() {
         if (
           !pedidos.result.info ||
           Object.keys(pedidos.result.info).length === 0
+
 
 
         ) {
@@ -327,6 +418,12 @@ export default function Turnero() {
         });
 
         setVisita(pedidos?.result);
+        // 🟡 Insertar validación aquí
+        const huboError = await registrarErrorLectura(pedidos?.result);
+        if (huboError) {
+          setIsLoading(false);
+          return;
+        }
 
         setIsLoading(false);
       }
@@ -934,14 +1031,8 @@ export default function Turnero() {
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "#000",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
             zIndex: 9999,
-            color: "#fff",
-            textAlign: "center",
+            overflow: "hidden",
           }}
           onClick={() => {
             setMostrarPantallaInicio(false);
@@ -952,14 +1043,42 @@ export default function Turnero() {
             setMostrarInstruccionDocumento(true);
           }}
         >
-          <img
-            src={Logo}
-            alt="Logo"
-            style={{ width: "200px", marginBottom: "30px" }}
-          />
-          <Typography variant="h4" style={{ fontSize: "2rem" }}>
-            Toque la pantalla para iniciar
-          </Typography>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              zIndex: -1,
+            }}
+          >
+            <source src="/turnero.webm" type="video/webm" />
+            Tu navegador no soporta el video.
+          </video>
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100vh",
+              color: "#fff",
+              textAlign: "center",
+              backgroundColor: "rgba(0,0,0,0.5)",
+            }}
+          >
+            <img src={Logo} alt="Logo" style={{ width: "180px", marginBottom: "20px" }} />
+            <Typography variant="h3" style={{ fontWeight: "bold", textShadow: "2px 2px 4px #000" }}>
+              Toque la pantalla para iniciar
+            </Typography>
+          </div>
         </div>
       )}
 

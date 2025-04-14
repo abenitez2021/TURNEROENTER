@@ -676,6 +676,18 @@ function NavBar() {
                   <ListItemText secondary="Cambiar contraseña" />
                 </ListItem>
               )}
+              {(userContext.state.rol === "Administrador") && (
+                <ListItem
+                  button
+                  onClick={() => history.push("/movimientos/errores")}
+                  className={pathName?.[2] === "lista-movimientos-dos" && classes.active}
+                >
+                  <ListItemIcon style={{ minWidth: 30 }}>
+                    <ListIcon fontSize="small" style={{ color: "#157592" }} />
+                  </ListItemIcon>
+                  <ListItemText secondary="Errores de lectura" />
+                </ListItem>
+              )}
           </List>
 
 

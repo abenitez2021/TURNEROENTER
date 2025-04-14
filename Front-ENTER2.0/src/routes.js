@@ -25,6 +25,8 @@ import InformeGraficoUsuarios from "./page/servicios/InformeGraficoUsuarios"
 import InformeGraficoTramites from "./page/servicios/InformeGraficoTramites"
 import InformeTiemposEspera from "./page/servicios/InformeTiemposEspera"
 
+import ErroresLectura from"./page/movimientos/ErroresLectura"
+
 export const routes = [
   {
     path: "/",
@@ -118,6 +120,11 @@ export const routes = [
     path: "/movimientos/contraseña",
     label: "Cambiar contraseña",
     component: Contraseña,
+  },
+  {
+    path: "/movimientos/errores",
+    label: "Errores lectura",
+    component: ErroresLectura,
   },
   {
     path: "/movimientos/lista-movimientos-usuarios",

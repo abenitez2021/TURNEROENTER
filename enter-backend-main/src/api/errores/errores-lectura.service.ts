@@ -7,6 +7,20 @@ import * as path from 'path';
 export class ErroresLecturaService {
   constructor(private dataSource: DataSource) { }
 
+  async obtenerReporteErrores(): Promise<any[]> {
+    const query = `
+      SELECT 
+       id, DATE_FORMAT(fecha_hora , '%d/%m/%Y %H:%i:%s') as fecha_hora, json_completo , ruta_foto , ruta_frente , ruta_dorso 
+      FROM errores_lectura
+      ORDER BY fecha_hora DESC
+  
+    `;
+    
+    const result = await this.dataSource.query(query);
+    return result;
+  }
+  
+
   async registrarErrorDesdeFrontend(dto: {
     idPuesto: number;
     jsonCompleto: any;
