@@ -506,6 +506,58 @@ export default function ListaAccesoVisitantesDos() {
     }
   };
 
+  //registrar errores en la tabla 
+  const registrarErrorDeLectura = async () => {
+    const descripcion = [];
+    if (!visita.nombre) descripcion.push("falta nombre");
+    if (!visita.apellido) descripcion.push("falta apellido");
+    if (!visita.documento) descripcion.push("falta número de documento");
+    if (!visita.foto) descripcion.push("falta foto");
+    if (!visita.imagenFrente) descripcion.push("falta foto frente");
+    if (!visita.imagenDorso) descripcion.push("falta foto dorso");
+
+    const descripcion_error = descripcion.join(", ");
+
+    const payload = {
+      idPuesto: visita?.idPuestoEnviado || 1,
+      jsonCompleto: {
+        ...visita,
+        fechaHora: new Date().toLocaleString(),
+        idPuesto: visita?.idPuestoEnviado || 1,
+      },
+      descripcion_error,
+      foto: visita.foto || "",
+      imagenFrente: visita.imagenFrente || "",
+      imagenDorso: visita.imagenDorso || "",
+    };
+
+    try {
+      const res = await axios.post("/errores/registrar", payload);
+      if (res.data.ok) {
+        swal("Lectura incorrecta del documento. Registro de error realizado.", {
+          icon: "warning",
+          buttons: false,
+          timer: 2500,
+        });
+        getLimpiarLecturaFisica();
+      } else {
+        swal("No se pudo registrar el error de lectura.", {
+          icon: "error",
+          buttons: false,
+          timer: 2500,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      swal("Error al intentar registrar el error de lectura.", {
+        icon: "error",
+        buttons: false,
+        timer: 2500,
+      });
+    }
+  };
+
+
   const handleChangeNombre = (event) => {
     let copyInput = {
       ...visitanteAcceso,
@@ -581,108 +633,136 @@ export default function ListaAccesoVisitantesDos() {
   // };
 
   const handleGuardar = async () => {
-    //actualizarVisitanteAcceso();
+    const erroresBloqueantes = [];
+    const erroresPermitidos = [];
 
-    console.log("Datos DEPOIS de actualizar", visitanteAcceso);
+    //cargar errores 
+    const descripcion = [];
+    if (!visita.nombre) descripcion.push("falta nombre");
+    if (!visita.apellido) descripcion.push("falta apellido");
+    if (!visita.documento) descripcion.push("falta número de documento");
+    if (!visita.foto) descripcion.push("falta foto");
+    if (!visita.imagenFrente) descripcion.push("falta foto frente");
+    if (!visita.imagenDorso) descripcion.push("falta foto dorso");
 
+    const descripcion_error = descripcion.join(", ");
+
+    // Reglas que bloquean el ingreso
+    if (!visitanteAcceso.nombre) erroresBloqueantes.push("falta nombre");
+    if (!visitanteAcceso.apellido) erroresBloqueantes.push("falta apellido");
+    if (!visitanteAcceso.documento) erroresBloqueantes.push("falta número de documento");
+
+    // Reglas que permiten ingresar igual
+    if (!visitanteAcceso.foto) erroresPermitidos.push("falta foto");
+    if (!visitanteAcceso.imagenFrente) erroresPermitidos.push("falta foto frente");
+    if (!visitanteAcceso.imagenDorso) erroresPermitidos.push("falta foto dorso");
+
+    // Si hay cualquier tipo de error, registrarlo en la tabla de errores
+
+
+    if (erroresBloqueantes.length > 0 || erroresPermitidos.length > 0) {
+      const descripcionError = [...erroresBloqueantes, ...erroresPermitidos].join(", ");
+
+      try {
+        await axios.post("http://localhost:7001/api/errores/registrar", {
+          idPuesto: visita.idPuestoEnviado,
+          jsonCompleto: visitanteAcceso,
+          descripcion_error: descripcionError,
+          foto: visita.foto ?? "",
+          imagenFrente: visita.imagenFrente ?? "",
+          imagenDorso: visita.imagenDorso ?? "",
+        });
+
+
+        console.log("📤 Enviando al backend:", {
+
+          foto: visita.imagenDorso,
+          imagenFrente: visita.imagenFrente,
+          imagenDorso: visita.imagenDorso,
+        });
+
+      } catch (error) {
+        console.error("❌ No se pudo registrar el error:", error);
+      }
+
+      // Si hay errores bloqueantes, mostrar SweetAlert y detener
+      if (erroresBloqueantes.length > 0) {
+        swal({
+          title: "Lectura incorrecta del documento",
+          text: "Se detectaron datos incompletos. ¿Desea limpiar la lectura o modificar manualmente?",
+          icon: "warning",
+          buttons: {
+            cancel: "Modificar manualmente",
+            confirm: {
+              text: "Aceptar y limpiar",
+              value: true,
+            },
+          },
+        }).then((accion) => {
+          if (accion) {
+            getLimpiarLecturaFisica();
+          } else {
+            detenerSocket(); // Habilita la carga manual
+          }
+        });
+
+
+        return;
+      }
+    }
+
+    // Validaciones adicionales (flujo normal)
     if (visitanteAcceso.idDependencia === "") {
-      // Si el idDependencia está vacío, muestra un mensaje de error
       swal("Es necesario elegir una dependencia", {
         icon: "warning",
         buttons: false,
         timer: 1500,
       });
-      return; // Detiene la ejecución de la función
+      return;
     }
+
     if (visitanteAcceso.nacionalidad === "") {
-      // Si el idDependencia está vacío, muestra un mensaje de error
       swal("Es necesario ingresar una nacionalidad", {
         icon: "warning",
         buttons: false,
         timer: 1500,
       });
-      return; // Detiene la ejecución de la función
+      return;
     }
 
-
-    if (visitanteAcceso.nombre === "") {
-      // Si nombre está vacío, muestra un mensaje de error
-      swal("Es necesario elegir el nombre", {
-        icon: "warning",
-        buttons: false,
-        timer: 1500,
-      });
-      return; // Detiene la ejecución de la función
-    }
-
-    if (visitanteAcceso.apellido === "") {
-      // Si apellido está vacío, muestra un mensaje de error
-      swal("Es necesario ingresar el apellido", {
-        icon: "warning",
-        buttons: false,
-        timer: 1500,
-      });
-      return; // Detiene la ejecución de la función
-    }
-
-    if (visitanteAcceso.documento === "") {
-      // Si documentoestá vacío, muestra un mensaje de error
-      swal("Es necesario ingresar el nro. de documento", {
-        icon: "warning",
-        buttons: false,
-        timer: 1500,
-      });
-      return; // Detiene la ejecución de la función
-    }
-
-    // Itera sobre los resultados y verifica si hay alguna visita con salida pendiente
-    //const tieneSalidaPendienteAlgunaVisita = data.content.some(tieneSalidaPendiente, visitanteAcceso.documento);
     const tieneSalidaPendienteAlgunaVisita = tieneSalidaPendiente(
       data.content,
       visitanteAcceso.documento
     );
 
-    console.log("ver si tiene salida", tieneSalidaPendienteAlgunaVisita);
-
     if (tieneSalidaPendienteAlgunaVisita) {
-      // Si apellido está vacío, muestra un mensaje de error
-      swal(
-        "La persona aún no ha realizado su salida para volver a ser registrada su entrada",
-        {
-          icon: "warning",
-          buttons: false,
-          timer: 3000,
-        }
-      );
-      return; // Detiene la ejecución de la función
+      swal("La persona aún no ha realizado su salida para volver a ser registrada su entrada", {
+        icon: "warning",
+        buttons: false,
+        timer: 3000,
+      });
+      return;
     }
 
+    // Guardar visita
     setIsLoading(true);
-    let url = "visitas/registrar-entrada/";
-
     try {
-      const response = await axios.post(url, visitanteAcceso);
-      let status = response.status;
-      if (status === 200) {
-        if (response.data?.ok) {
-          getLimpiarLecturaFisica();
-          setDependencia({});
-          //setTipoDocumento("");
-          getPedido();
-          setVisitanteAcceso(inicialValue);
-          setVisita(inicialScannerValue);
-          console.log("ESTO ES VISITA DESPUES DE BORRAR ", visita);
-          setIsLoading(false);
-          swal("¡OPERACIÓN EXITOSA!", {
-            icon: "success",
-            buttons: false,
-            timer: 1500,
-          });
-          // history.goBack();
-        } else {
-          setIsLoading(false);
-          notificacionAlerta(response.data?.message);
-        }
+      const response = await axios.post("visitas/registrar-entrada/", visitanteAcceso);
+      if (response.status === 200 && response.data?.ok) {
+        getLimpiarLecturaFisica();
+        setDependencia({});
+        getPedido();
+        setVisitanteAcceso(inicialValue);
+        setVisita(inicialScannerValue);
+        setIsLoading(false);
+        swal("¡OPERACIÓN EXITOSA!", {
+          icon: "success",
+          buttons: false,
+          timer: 1500,
+        });
+      } else {
+        setIsLoading(false);
+        notificacionAlerta(response.data?.message);
       }
     } catch (error) {
       setIsLoading(false);
@@ -691,6 +771,7 @@ export default function ListaAccesoVisitantesDos() {
       }
     }
   };
+
 
   const handleFechaDesde = (date) => {
     setFiltro({ ...filtro, fechaDesde: date });
@@ -1202,8 +1283,8 @@ export default function ListaAccesoVisitantesDos() {
                           }}
                         />
                         <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                   
-                  </div>
+
+                        </div>
 
 
 

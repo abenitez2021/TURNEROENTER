@@ -10,9 +10,11 @@ import {
   TableHead,
   TableRow,
   Grid,
+  Button,
 } from "@material-ui/core";
 import axios from "axios";
 import "./PublicTurnos.css";
+
 
 export default function PublicTurnos() {
   const [turnos, setTurnos] = useState([]);
@@ -21,13 +23,31 @@ export default function PublicTurnos() {
   const [clima, setClima] = useState({ ciudad: "Asunción", temperatura: "--", descripcion: "", icono: "" });
   const apiKey = "86efa0d73f1094e7f7a768710d1c0eb3";
 
-  const reproducirVoz = (turno) => {
-    const msg = new SpeechSynthesisUtterance();
-    msg.text = `Turno ${turno.codigo_turno.split("").join(" ")} diríjase a ${turno.nombre_box}`;
-    msg.lang = "es-ES";
-    msg.rate = 0.7;
-    window.speechSynthesis.speak(msg);
+
+  const reproducirCampana = () => {
+    const audio = new Audio("/sonidos/sonido.mp3");
+    audio.volume = 1;
+
+    // Se asegura de reproducir cuando esté listo
+    audio.addEventListener("canplaythrough", () => {
+      audio.play().catch((e) => console.error("Error al reproducir sonido:", e));
+    });
+
+    audio.load(); // Carga el audio
   };
+  const reproducirVoz = (turno) => {
+
+    reproducirCampana();
+
+    setTimeout(() => {
+      const msg = new SpeechSynthesisUtterance();
+      msg.text = `Turno ${turno.codigo_turno.split("").join(" ")} diríjase a ${turno.nombre_box}`;
+      msg.lang = "es-ES";
+      msg.rate = 0.7;
+      window.speechSynthesis.speak(msg);
+    }, 1200); // espera a que termine la campanita
+  };
+
 
   const obtenerClima = async () => {
     try {
@@ -78,6 +98,7 @@ export default function PublicTurnos() {
   };
 
   useEffect(() => {
+    //reproducirCampana();
     obtenerTurnos();
     obtenerClima();
 
@@ -177,10 +198,10 @@ export default function PublicTurnos() {
                 <Typography variant="body1">{clima.ciudad}</Typography>
                 <Typography variant="h4">{clima.temperatura}</Typography>
                 <Typography variant="body2">{clima.descripcion}</Typography>
-                
+
               </Paper>
               <Paper elevation={3} className="panel panel-translucido clima">
-              {clima.descripcion && (
+                {clima.descripcion && (
                   <img
                     src={obtenerIconoClimaPersonalizado(clima.descripcion)}
                     alt={clima.descripcion}
@@ -196,7 +217,11 @@ export default function PublicTurnos() {
             </Paper>
           </Box>
         </Box>
+        <Button variant="contained" color="primary" onClick={reproducirCampana} fullWidth>
+          Buscar
+        </Button>
       </Box>
+
     </>
   );
 }

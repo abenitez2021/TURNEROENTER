@@ -47,7 +47,9 @@ import { PuntoAtencionService } from './puntoatencion/puntoatencion.service';
 import { InformesController } from './informes/informes.controller';
 import { InformesService } from './informes/informes.service';
 import {InformesModule} from'./informes/informes.module';
-
+import {ErroresLecturaModule}from './errores/errores.module'
+import { ErroresLecturaController } from './errores/errores-lectura.controller';
+import { ErroresLecturaService } from './errores/errores-lectura.service';
 
 @Module({
     imports: [
@@ -74,6 +76,7 @@ import {InformesModule} from'./informes/informes.module';
         TramitesController, // ✅ Agregado
         PuntoAtencionController,
         InformesController,
+        ErroresLecturaController,
 
         
     ],
@@ -92,6 +95,7 @@ import {InformesModule} from'./informes/informes.module';
         TramitesService, // ✅ Agregado
         PuntoAtencionService,
         InformesService,
+        ErroresLecturaService,
         
     ]
 })
