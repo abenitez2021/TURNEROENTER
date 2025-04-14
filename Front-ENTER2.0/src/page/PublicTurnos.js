@@ -9,88 +9,83 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Grid,
   Button,
 } from "@material-ui/core";
 import axios from "axios";
 import "./PublicTurnos.css";
 
-
 export default function PublicTurnos() {
-  const [turnos, setTurnos] = useState([]);
+  const [turnosAcumulados, setTurnosAcumulados] = useState([]);
+  const [turnosYaLlamados, setTurnosYaLlamados] = useState([]);
   const [turnoEnPantalla, setTurnoEnPantalla] = useState(null);
   const [horaActual, setHoraActual] = useState("");
   const [clima, setClima] = useState({ ciudad: "Asunción", temperatura: "--", descripcion: "", icono: "" });
   const apiKey = "86efa0d73f1094e7f7a768710d1c0eb3";
 
-
   const reproducirCampana = () => {
     const audio = new Audio("/sonidos/sonido.mp3");
     audio.volume = 1;
-
-    // Se asegura de reproducir cuando esté listo
     audio.addEventListener("canplaythrough", () => {
       audio.play().catch((e) => console.error("Error al reproducir sonido:", e));
     });
-
-    audio.load(); // Carga el audio
+    audio.load();
   };
+
   const reproducirVoz = (turno) => {
-
     reproducirCampana();
-
     setTimeout(() => {
       const msg = new SpeechSynthesisUtterance();
       msg.text = `Turno ${turno.codigo_turno.split("").join(" ")} diríjase a ${turno.nombre_box}`;
       msg.lang = "es-ES";
       msg.rate = 0.7;
       window.speechSynthesis.speak(msg);
-    }, 1200); // espera a que termine la campanita
+    }, 1200);
   };
-
 
   const obtenerClima = async () => {
     try {
       const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=Asuncion,py&appid=${apiKey}&units=metric&lang=es`);
       const data = res.data;
-      console.log("esto viene de api.openweathermap ;", res)
       setClima({
         ciudad: data.name,
         temperatura: `${Math.round(data.main.temp)}°C`,
         descripcion: data.weather[0].description,
         icono: `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`,
       });
-      console.log("ICONO CLIMA:", `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`);
     } catch (err) {
       console.error("Error al obtener clima:", err);
     }
   };
+
   const obtenerIconoClimaPersonalizado = (descripcion) => {
     const desc = descripcion.toLowerCase();
-
     if (desc.includes("lluvia")) return "/icons/animated/rainy-1.svg";
     if (desc.includes("nieve")) return "/icons/animated/snowy-1.svg";
     if (desc.includes("nublado")) return "/icons/animated/cloudy.svg";
     if (desc.includes("parcialmente") || desc.includes("algo de")) return "/icons/animated/cloudy-day-1.svg";
     if (desc.includes("despejado") || desc.includes("soleado")) return "/icons/animated/day.svg";
     if (desc.includes("noche")) return "/icons/animated/night.svg";
-
-    return "/icons/animated/cloudy.svg"; // ícono por defecto
+    return "/icons/animated/cloudy.svg";
   };
-
 
   const obtenerTurnos = async () => {
     try {
       const res = await fetch("http://localhost:7001/api/turnos/ultimos-llamados");
       const data = await res.json();
+
       if (data.ok) {
-        const nuevoTurno = data.turnos[0];
-        if (!turnos.length || nuevoTurno.codigo_turno !== turnos[0].codigo_turno) {
-          setTurnoEnPantalla(nuevoTurno);
-          reproducirVoz(nuevoTurno);
-          setTimeout(() => setTurnoEnPantalla(null), 10000);
-        }
-        setTurnos(data.turnos);
+        const nuevos = data.turnos || [];
+
+        setTurnosAcumulados((prev) => {
+          const existentes = new Set(prev.map((t) => t.id));
+          const combinados = [...prev];
+          nuevos.forEach((t) => {
+            if (!existentes.has(t.id)) {
+              combinados.push(t);
+            }
+          });
+          return combinados.slice(-1000); // máximo 1000 turnos acumulados
+        });
       }
     } catch (err) {
       console.error("Error al obtener turnos: ", err);
@@ -98,34 +93,46 @@ export default function PublicTurnos() {
   };
 
   useEffect(() => {
-    //reproducirCampana();
     obtenerTurnos();
     obtenerClima();
 
-    const intervaloTurnos = setInterval(obtenerTurnos, 150000);
-    const intervaloClima = setInterval(obtenerClima, 10 * 60 * 1000);
-    const intervaloReloj = setInterval(() => {
+    const intTurnos = setInterval(obtenerTurnos, 3000);
+    const intClima = setInterval(obtenerClima, 10 * 60 * 1000);
+    const intReloj = setInterval(() => {
       const now = new Date();
-      const hora = now.toLocaleTimeString("es-PY", {
+      setHoraActual(now.toLocaleTimeString("es-PY", {
         hour: "2-digit",
         minute: "2-digit",
-        //second: "2-digit",
-        hour12: false, // ✅ Agregado para 24 horas
-      });
-      setHoraActual(hora);
+        hour12: false,
+      }));
     }, 1000);
 
     return () => {
-      clearInterval(intervaloTurnos);
-      clearInterval(intervaloClima);
-      clearInterval(intervaloReloj);
+      clearInterval(intTurnos);
+      clearInterval(intClima);
+      clearInterval(intReloj);
     };
   }, []);
 
-  const turnosCompletados = [...turnos];
-  while (turnosCompletados.length < 5) {
-    turnosCompletados.push({ codigo_turno: "---", nombre_visitante: "---", apellido_visitante: "", nombre_box: "---" });
-  }
+  useEffect(() => {
+    if (turnoEnPantalla) return;
+
+    const siguiente = turnosAcumulados.find((t) => !turnosYaLlamados.includes(t.id));
+    if (siguiente) {
+      setTurnoEnPantalla(siguiente);
+      setTurnosYaLlamados((prev) => [...prev, siguiente.id]);
+      reproducirVoz(siguiente);
+
+      setTimeout(() => {
+        setTurnoEnPantalla(null);
+      }, 10000);
+    }
+  }, [turnosAcumulados, turnoEnPantalla, turnosYaLlamados]);
+
+  const ultimosLlamados = turnosAcumulados
+    .filter((t) => turnosYaLlamados.includes(t.id))
+    .slice(-5)
+    .reverse();
 
   return (
     <>
@@ -134,14 +141,11 @@ export default function PublicTurnos() {
       </video>
 
       <Box className="pantalla">
-        {/* 🏢 Logo centrado */}
         <Box className="logo">
           <img src="/empresalargo.png" alt="Logo" style={{ width: 1000 }} />
         </Box>
 
-        {/* 🔳 Contenido principal: dividido en 2 columnas */}
         <Box className="contenedor">
-          {/* 📋 COLUMNA IZQUIERDA: Turnos */}
           <Paper elevation={4} className={`panel panel-translucido turnos ${turnoEnPantalla ? "borde-llamado" : ""}`}>
             {turnoEnPantalla ? (
               <Box className="animacion-fade">
@@ -171,8 +175,8 @@ export default function PublicTurnos() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {turnosCompletados.map((t, index) => (
-                      <TableRow key={index}>
+                    {ultimosLlamados.map((t, index) => (
+                      <TableRow key={t.id || index}>
                         <TableCell>{t.codigo_turno}</TableCell>
                         <TableCell>{`${t.nombre_visitante} ${t.apellido_visitante}`}</TableCell>
                         <TableCell>{t.nombre_box}</TableCell>
@@ -184,9 +188,7 @@ export default function PublicTurnos() {
             )}
           </Paper>
 
-          {/* 🧩 COLUMNA DERECHA: Reloj/Clima + Video */}
           <Box style={{ flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
-            {/* Reloj y Clima arriba */}
             <Box style={{ display: "flex", gap: 20 }}>
               <Paper elevation={3} className="panel panel-translucido reloj">
                 <Typography variant="h6">🕒 Reloj Digital</Typography>
@@ -198,8 +200,8 @@ export default function PublicTurnos() {
                 <Typography variant="body1">{clima.ciudad}</Typography>
                 <Typography variant="h4">{clima.temperatura}</Typography>
                 <Typography variant="body2">{clima.descripcion}</Typography>
-
               </Paper>
+
               <Paper elevation={3} className="panel panel-translucido clima">
                 {clima.descripcion && (
                   <img
@@ -211,17 +213,16 @@ export default function PublicTurnos() {
               </Paper>
             </Box>
 
-            {/* 🎥 Video institucional abajo */}
             <Paper elevation={2} className="panel panel-translucido video">
               <video src="/video.mp4" autoPlay muted loop />
             </Paper>
           </Box>
         </Box>
+
         <Button variant="contained" color="primary" onClick={reproducirCampana} fullWidth>
           Buscar
         </Button>
       </Box>
-
     </>
   );
 }

@@ -889,26 +889,21 @@ export default function LlamadorTurnos() {
         <DialogContent dividers>
           <Grid container spacing={2} style={{ marginTop: 16 }}>
             <Grid item xs={4}>
-              <img
+              <ImagenConFallback
                 src={turnoActual?.imagenFrente}
+                fallback={frontal}
                 alt="Frente"
                 style={{ width: "100%", maxHeight: 200, objectFit: "cover" }}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/images/frente.png";
-                }}
               />
               <Typography align="center" variant="body2">Frente</Typography>
             </Grid>
             <Grid item xs={4}>
-              <img
+              <ImagenConFallback
+
                 src={turnoActual?.imagenDorso}
                 alt="Dorso"
                 style={{ width: "100%", maxHeight: 200, objectFit: "cover" }}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/images/dorso.png";
-                }}
+                
               />
               <Typography align="center" variant="body2">Dorso</Typography>
             </Grid>

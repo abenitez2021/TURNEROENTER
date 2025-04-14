@@ -430,7 +430,7 @@ export class TurnosService {
     async obtenerUltimosTurnosLlamados() {
         try {
             const result = await this.dataSource.query(`
-            SELECT 
+            SELECT t.id,
             t.codigo_turno,
             v.nombre AS nombre_visitante,
             v.apellido AS apellido_visitante,
