@@ -274,12 +274,11 @@ export class TurnosService {
 
             if (turnoData.turno_origen_id) {
                 const resultadoTransferencia = await this.dataSource.query(
-                    `SELECT t2.nombre AS nombre_tramite_anterior, p.nombre AS nombre_box
-                    FROM turnos t 
-                    JOIN historial_turnos ht ON t.turno_origen_id = ht.id_turno
-                    JOIN tramites t2 ON t2.id = ht.id_tramite_anterior
-                    JOIN puntoatencion p ON p.id = ht.id_puntoatencion
-                    WHERE t.id = ?`,
+                    `select t.id,t3.nombre AS nombre_tramite_anterior, p.nombre AS nombre_box from turnos t 
+             join turnos t2 on t2.id = t.turno_origen_id
+             join tramites t3 on t3.id= t2.id_tramite 
+             join puntoatencion p on p.id = t2.box
+             where t.id=?`,
                     [id]
                 );
 
@@ -453,7 +452,7 @@ export class TurnosService {
 
 
     // 📌 Actualizar Turno (reasignar turno)
-    async reasignarTurno(idTurno: number, idTramiteNuevo: number, comentario: string, idUsuario?: number, ipCliente?: string) {
+    async reasignarTurno(idTurno: number, idTramiteNuevo: number, comentario: string, idUsuario?: number, ipCliente?: string, id_puntoatencion?:number,) {
         try {
             const turnoOriginal = await this.dataSource.query(`SELECT * FROM turnos WHERE id = ?`, [idTurno]);
             if (!turnoOriginal.length) return { ok: false, message: 'No se encontró el turno a reasignar.' };
@@ -470,8 +469,17 @@ export class TurnosService {
             const nombreTramiteNuevo = tramiteNuevo[0].nombre;
 
             // Finalizar el turno anterior
-            await this.dataSource.query(`UPDATE turnos SET estado = 'FINALIZADO', fecha_finalizacion = NOW() WHERE id = ?`, [idTurno]);
-
+            await this.dataSource.query(
+                `UPDATE turnos 
+                 SET estado = 'FINALIZADO', 
+                     fecha_llamado = IFNULL(fecha_llamado, NOW()),
+                     fecha_finalizacion = NOW(), 
+                     box = ?, 
+                     id_usuario = ? 
+                 WHERE id = ?`,
+                [id_puntoatencion || null, idUsuario || null, idTurno]
+              );
+              
             // Insertar el nuevo turno
             const resultInsert = await this.dataSource.query(
                 `INSERT INTO turnos (id_visita, codigo_turno, estado, tramite, fecha_emision, id_tramite, box, turno_origen_id)

@@ -38,6 +38,7 @@ import { alertWarningError } from "../../components/Notificaciones";
 
 import { TextField } from "@material-ui/core";
 import UserContext from "../../utils/user/UserContext";
+import moment from "moment-timezone";
 
 export default function LlamadorTurnos() {
   const [puntosAtencion, setPuntosAtencion] = useState([]);
@@ -168,20 +169,26 @@ export default function LlamadorTurnos() {
   };
 
 
+
+
   const calcularTiempoEspera = (fechaISO) => {
     if (!fechaISO) return "-";
-    const ahora = new Date();
-    const fechaEmision = new Date(fechaISO);
-    const diffMs = ahora - fechaEmision;
-    const minutos = Math.floor(diffMs / 60000);
-    return minutos;
+
+    const ahora = moment().tz("America/Asuncion");
+    const emision = moment(fechaISO).tz("America/Asuncion");
+
+    const diffMin = ahora.diff(emision, "minutes");
+
+    return diffMin ;
   };
+
 
   const formatearHora = (fechaISO) => {
     if (!fechaISO) return "-";
-    const fecha = new Date(fechaISO);
-    return fecha.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const horaPY = moment.utc(fechaISO).tz("America/Asuncion");
+    return horaPY.format("HH:mm");
   };
+
 
   const verTurno = async (turno) => {
     try {
@@ -903,7 +910,7 @@ export default function LlamadorTurnos() {
                 src={turnoActual?.imagenDorso}
                 alt="Dorso"
                 style={{ width: "100%", maxHeight: 200, objectFit: "cover" }}
-                
+
               />
               <Typography align="center" variant="body2">Dorso</Typography>
             </Grid>

@@ -119,8 +119,8 @@ export default function Turnero() {
   const [mostrarInstruccionDocumento, setMostrarInstruccionDocumento] = useState(false);
   const esTurnero = userContext.state.rol === "TURNERO";
 
-    // 💾 REF para evitar duplicados (declarar arriba del componente)
-    const ultimoTransactionIdRef = useRef(null);
+  // 💾 REF para evitar duplicados (declarar arriba del componente)
+  const ultimoTransactionIdRef = useRef(null);
 
   // hasta aqui
 
@@ -382,7 +382,9 @@ export default function Turnero() {
                   ? "VISA"
                   : pedidos?.result?.tipoDocumento === "P"
                     ? "PASAPORTE"
-                    : pedidos?.result?.tipoDocumento || prevVisitanteAcceso.tipoDocumento,
+                    : pedidos?.result?.tipoDocumento === "IN"
+                      ? "DOCUMENTO DE IDENTIDAD"
+                      : pedidos?.result?.tipoDocumento || prevVisitanteAcceso.tipoDocumento,
             fechaNacimiento:
               pedidos?.result?.fechaNacimiento ||
               prevVisitanteAcceso.fechaNacimiento,
@@ -399,7 +401,13 @@ export default function Turnero() {
               prevVisitanteAcceso.fechaExpiracionDocumento,
             fechaEmision:
               pedidos?.result?.fechaEmision || prevVisitanteAcceso.fechaEmision,
-            sexo: pedidos?.result?.sexo || prevVisitanteAcceso.sexo,
+            sexo:
+              pedidos?.result?.sexo === "MASCULINO"
+                ? "M"
+                : pedidos?.result?.sexo === "FEMENINO"
+                  ? "F"
+                  : pedidos?.result?.sexo || prevVisitanteAcceso.sexo,
+
             estadoCivil:
               pedidos?.result?.estadoCivil || prevVisitanteAcceso.estadoCivil,
             identityCardNumber:

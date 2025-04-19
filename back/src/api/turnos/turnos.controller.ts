@@ -71,11 +71,12 @@ export class TurnosController {
 
     @Put('reasignar')
     async reasignarTurno(@Body() body: any, @Req() req: Request) {
-        const { idTurno, idTramite, comentario } = body;
+        const { idTurno, idTramite, comentario, id_puntoatencion } = body;
         const ipCliente = req.ip || req.connection.remoteAddress || '';
         const idUsuario = req['user']?.id || null;
+    
 
-        return this.turnosService.reasignarTurno(idTurno, idTramite, comentario, idUsuario, ipCliente);
+        return this.turnosService.reasignarTurno(idTurno, idTramite, comentario, idUsuario, ipCliente, id_puntoatencion);
     }
     // 📌 Cancelar Turno
     @Post('cancelar')
