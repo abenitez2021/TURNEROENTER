@@ -28,9 +28,10 @@ export class TurnosController {
 
     // 📌 Llamar Turno
     @Post('llamar')
-    async llamarTurno(@Body() body: { id: number, box: number }) {
-        return this.turnosService.llamarTurno(body.id, body.box);
+    async llamarTurno(@Body() body: { id: number, box: number, id_usuario?: number }) {
+        return this.turnosService.llamarTurno(body.id, body.box, body.id_usuario);
     }
+
 
     // 📌 Finalizar Turno
     @Post('finalizar')
@@ -70,14 +71,19 @@ export class TurnosController {
     // Actualizar Turno
 
     @Put('reasignar')
-    async reasignarTurno(@Body() body: any, @Req() req: Request) {
-        const { idTurno, idTramite, comentario, id_puntoatencion } = body;
+    async reasignarTurno(@Body() body: {
+        idTurno: number;
+        idTramite: number;
+        comentario: string;
+        id_usuario: number;
+    }, @Req() req: Request) {
+        const { idTurno, idTramite, comentario, id_usuario } = body;
         const ipCliente = req.ip || req.connection.remoteAddress || '';
-        const idUsuario = req['user']?.id || null;
-    
 
-        return this.turnosService.reasignarTurno(idTurno, idTramite, comentario, idUsuario, ipCliente, id_puntoatencion);
+        return this.turnosService.reasignarTurno(idTurno, idTramite, comentario, id_usuario, ipCliente);
     }
+
+
     // 📌 Cancelar Turno
     @Post('cancelar')
     async cancelarTurno(@Body() body: {
@@ -102,5 +108,11 @@ export class TurnosController {
         return this.turnosService.obtenerUltimosTurnosLlamados();
     }
 
+     // 📌 Llamar Turno
+     @Post('rellamar')
+     async rellamarTurno(@Body() body: { id: number, box: number, id_usuario?: number }) {
+         return this.turnosService.rellamarTurno(body.id, body.box, body.id_usuario);
+     }
+ 
 
 }

@@ -18,6 +18,7 @@ export const databaseProviders = [
                 username: database.user,
                 database: database.name,
                 password: database.password,
+                timezone: database.timezone,
                 entities: [__dirname + '/../**/*.entity{.ts,.js}'],
                 migrations: [__dirname + '/migrations/*{.ts,.js}']
             } as DataSourceOptions;

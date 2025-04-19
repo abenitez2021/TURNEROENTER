@@ -274,11 +274,12 @@ export class TurnosService {
 
             if (turnoData.turno_origen_id) {
                 const resultadoTransferencia = await this.dataSource.query(
-                    `select t.id,t3.nombre AS nombre_tramite_anterior, p.nombre AS nombre_box from turnos t 
-             join turnos t2 on t2.id = t.turno_origen_id
-             join tramites t3 on t3.id= t2.id_tramite 
-             join puntoatencion p on p.id = t2.box
-             where t.id=?`,
+                    `SELECT t2.nombre AS nombre_tramite_anterior, p.nombre AS nombre_box
+                    FROM turnos t 
+                    JOIN historial_turnos ht ON t.turno_origen_id = ht.id_turno
+                    JOIN tramites t2 ON t2.id = ht.id_tramite_anterior
+                    JOIN puntoatencion p ON p.id = ht.id_puntoatencion
+                    WHERE t.id = ?`,
                     [id]
                 );
 
@@ -320,11 +321,79 @@ export class TurnosService {
 
     // 📌 Llamar Turno (Actualizar estado a ATENDIENDO)
     // 📌 Llamar Turno (Actualizar estado a ATENDIENDO)
-    async llamarTurno(id: number, box: number) {
+    async llamarTurno(id: number, box: number, id_usuario: number) {
         try {
             // ✅ Aceptar turnos en estado PENDIENTE o REASIGNADO
             const turno = await this.dataSource.query(
-                `SELECT * FROM turnos WHERE id = ? AND estado IN ('PENDIENTE', 'REASIGNADO')`,
+                `select v.nro_documento from turnos t join visitas v 
+                ON v.id=t.id_visita where t.id= ?
+                and estado in  ('PENDIENTE', 'REASIGNADO')`,
+                [id]
+            );
+
+            if (turno.length === 0) {
+                return { ok: false, message: 'El turno no está disponible o ya ha sido atendido.' };
+            }
+
+            const turnoData = turno[0];
+            console.log ('Este debe ser el numero de documento: ' ,turnoData.nro_documento)
+
+            // 🔄 Actualizar a ATENDIENDO
+            await this.dataSource.query(
+                `UPDATE turnos SET estado = 'ATENDIENDO', fecha_llamado = NOW(), tiempo_espera=1, box = ? WHERE id = ?`,
+                [box, id]
+            );
+
+            // 📸 Obtener imágenes
+            const sp = 'call sp_visitas_buscar_list(?)';
+            const parametros = [turnoData.nro_documento];
+            const result = await this.dataSource.query(sp, parametros);
+            const visita = result[0][0]; // asumimos que siempre hay una visita
+
+            const turnoConImagenes = {
+                ...turnoData,
+                nro_documento: visita.documento,
+                id_visita: visita.idVisita,
+                foto: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${turnoData.nro_documento}/archivo/foto.png`,
+                imagenFrente: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${turnoData.nro_documento}/archivo/frente.png`,
+                imagenDorso: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${turnoData.nro_documento}/archivo/dorso.png`
+            };
+
+            await this.registrarHistorialTurno({
+                id_turno: id,
+                codigo_turno: turnoData.codigo_turno,
+                estado: 'ATENDIENDO',
+                comentario: 'Turno llamado',
+                fue_reasignado: false,
+                id_tramite_anterior: turnoData.id_tramite,
+                id_tramite_nuevo: turnoData.id_tramite,
+                llamado_numero: 1,
+                duracion_atencion: null,
+                id_puntoatencion: box,
+                id_usuario: id_usuario, // <- lo podrías recibir si querés en el body
+                origen: 'Boton Llamar',
+                ip_cliente: null
+            });
+
+            return {
+                ok: true,
+                message: 'Turno llamado correctamente.',
+                turno: turnoConImagenes
+
+
+            };
+        } catch (error) {
+            this.logger.error('❌ Error al llamar turno', error);
+            return { ok: false, message: 'No se pudo llamar el turno.' };
+        }
+    }
+
+
+    async rellamarTurno(id: number, box: number, id_usuario: number) {
+        try {
+            // ✅ Aceptar turnos en estado PENDIENTE o REASIGNADO
+            const turno = await this.dataSource.query(
+                `SELECT * FROM turnos WHERE id = ? AND estado IN ('PENDIENTE', 'REASIGNADO', 'ATENDIENDO')`,
                 [id]
             );
 
@@ -334,35 +403,41 @@ export class TurnosService {
 
             const turnoData = turno[0];
 
-            // 🔄 Actualizar a ATENDIENDO
+            // 🔄 Actualizar para volver a llamar
             await this.dataSource.query(
-                `UPDATE turnos SET estado = 'ATENDIENDO', fecha_llamado = NOW(), box = ? WHERE id = ?`,
-                [box, id]
+                `  UPDATE turnos
+                    SET tiempo_espera = IFNULL(tiempo_espera, 0) + 1
+                    WHERE id =  ?`,
+                [ id]
             );
 
-            // 📸 Obtener imágenes
-            const sp = 'call sp_visitas_buscar_list(?)';
-            const parametros = [turnoData.documento];
-            const result = await this.dataSource.query(sp, parametros);
-            const visita = result[0][0]; // asumimos que siempre hay una visita
-
-            const turnoConImagenes = {
-                ...turnoData,
-                nro_documento: visita.documento,
-                id_visita: visita.idVisita,
-                foto: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/foto.png`,
-                imagenFrente: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/frente.png`,
-                imagenDorso: `http://localhost:${process.env.API_PORT}/api/visitas/ver-archivo/nro/${visita.documento}/archivo/dorso.png`
-            };
+            
+            await this.registrarHistorialTurno({
+                id_turno: id,
+                codigo_turno: turnoData.codigo_turno,
+                estado: 'ATENDIENDO',
+                comentario: 'Turno vuelto a llamar ',
+                fue_reasignado: false,
+                id_tramite_anterior: turnoData.id_tramite,
+                id_tramite_nuevo: turnoData.id_tramite,
+                llamado_numero: 1,
+                duracion_atencion: null,
+                id_puntoatencion: box,
+                id_usuario: id_usuario, // <- lo podrías recibir si querés en el body
+                origen: 'Boton Volver a Llamar',
+                ip_cliente: null
+            });
 
             return {
                 ok: true,
-                message: 'Turno llamado correctamente.',
-                turno: turnoConImagenes
+                message: 'Turno vuelto a llamar correctamente.',
+                
+
+
             };
         } catch (error) {
-            this.logger.error('❌ Error al llamar turno', error);
-            return { ok: false, message: 'No se pudo llamar el turno.' };
+            this.logger.error('❌ Error al volver a llamar turno', error);
+            return { ok: false, message: 'No se pudo volver a llamar el turno.' };
         }
     }
 
@@ -429,10 +504,11 @@ export class TurnosService {
     async obtenerUltimosTurnosLlamados() {
         try {
             const result = await this.dataSource.query(`
-            SELECT t.id,
+            
+ SELECT t.id, t.tiempo_espera,
             t.codigo_turno,
-            v.nombre AS nombre_visitante,
-            v.apellido AS apellido_visitante,
+            SUBSTRING_INDEX(v.nombre, ' ', 1)  AS nombre_visitante,
+            SUBSTRING_INDEX(v.apellido , ' ', 1) AS apellido_visitante,
             p.nombre AS nombre_box,
             t.fecha_llamado
             FROM turnos t 
@@ -441,7 +517,7 @@ export class TurnosService {
             where t.estado ="ATENDIENDO"
             ORDER BY t.fecha_llamado DESC
             LIMIT 5;
-      `);
+        `);
 
             return { ok: true, turnos: result };
         } catch (error) {
@@ -452,7 +528,7 @@ export class TurnosService {
 
 
     // 📌 Actualizar Turno (reasignar turno)
-    async reasignarTurno(idTurno: number, idTramiteNuevo: number, comentario: string, idUsuario?: number, ipCliente?: string, id_puntoatencion?:number,) {
+    async reasignarTurno(idTurno: number, idTramiteNuevo: number, comentario: string, idUsuario?: number, ipCliente?: string) {
         try {
             const turnoOriginal = await this.dataSource.query(`SELECT * FROM turnos WHERE id = ?`, [idTurno]);
             if (!turnoOriginal.length) return { ok: false, message: 'No se encontró el turno a reasignar.' };
@@ -469,17 +545,8 @@ export class TurnosService {
             const nombreTramiteNuevo = tramiteNuevo[0].nombre;
 
             // Finalizar el turno anterior
-            await this.dataSource.query(
-                `UPDATE turnos 
-                 SET estado = 'FINALIZADO', 
-                     fecha_llamado = IFNULL(fecha_llamado, NOW()),
-                     fecha_finalizacion = NOW(), 
-                     box = ?, 
-                     id_usuario = ? 
-                 WHERE id = ?`,
-                [id_puntoatencion || null, idUsuario || null, idTurno]
-              );
-              
+            await this.dataSource.query(`UPDATE turnos SET estado = 'FINALIZADO',fecha_llamado= NOW(), fecha_finalizacion = NOW() WHERE id = ?`, [idTurno]);
+
             // Insertar el nuevo turno
             const resultInsert = await this.dataSource.query(
                 `INSERT INTO turnos (id_visita, codigo_turno, estado, tramite, fecha_emision, id_tramite, box, turno_origen_id)
@@ -502,7 +569,7 @@ export class TurnosService {
                 id_tramite_nuevo: idTramiteNuevo,
                 id_puntoatencion: turno.box || null,
                 id_usuario: idUsuario || null,
-                origen: 'LLAMADOR',
+                origen: 'Boton Transferir',
                 ip_cliente: ipCliente || null
             });
 
@@ -550,7 +617,7 @@ export class TurnosService {
                     null,                        // duracion_atencion
                     turnoData.box,
                     idUsuario,
-                    'llamador',
+                    'Boton Cancelar',
                     ipCliente,
                     observaciones
                 ]
@@ -611,7 +678,7 @@ export class TurnosService {
                 duracion,
                 turno.box,
                 idUsuario,
-                'FINALIZACION',
+                'Boton Finalizar',
                 ip,
             ]);
 

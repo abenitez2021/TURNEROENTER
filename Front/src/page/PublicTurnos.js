@@ -16,7 +16,7 @@ import "./PublicTurnos.css";
 
 export default function PublicTurnos() {
   const [turnosAcumulados, setTurnosAcumulados] = useState([]);
-  const [turnosYaLlamados, setTurnosYaLlamados] = useState([]);
+  const [turnosYaLlamados, setTurnosYaLlamados] = useState([]); // [{id: 1, tiempo_espera: 3}, ...]
   const [turnoEnPantalla, setTurnoEnPantalla] = useState(null);
   const [horaActual, setHoraActual] = useState("");
   const [clima, setClima] = useState({ ciudad: "Asunción", temperatura: "--", descripcion: "", icono: "" });
@@ -77,20 +77,28 @@ export default function PublicTurnos() {
         const nuevos = data.turnos || [];
 
         setTurnosAcumulados((prev) => {
-          const existentes = new Set(prev.map((t) => t.id));
-          const combinados = [...prev];
-          nuevos.forEach((t) => {
-            if (!existentes.has(t.id)) {
-              combinados.push(t);
+          const actualizados = [...prev];
+
+          nuevos.forEach((nuevoTurno) => {
+            const index = actualizados.findIndex(t => t.id === nuevoTurno.id);
+
+            if (index === -1) {
+              // 🔹 Turno nuevo
+              actualizados.push(nuevoTurno);
+            } else if (actualizados[index].tiempo_espera !== nuevoTurno.tiempo_espera) {
+              // 🔁 Mismo ID pero tiempo_espera actualizado
+              actualizados[index] = nuevoTurno;
             }
           });
-          return combinados.slice(-1000); // máximo 1000 turnos acumulados
+
+          return actualizados.slice(-1000); // máximo 1000 turnos acumulados
         });
       }
     } catch (err) {
       console.error("Error al obtener turnos: ", err);
     }
   };
+
 
   useEffect(() => {
     obtenerTurnos();
@@ -116,23 +124,33 @@ export default function PublicTurnos() {
 
   useEffect(() => {
     if (turnoEnPantalla) return;
-
-    const siguiente = turnosAcumulados.find((t) => !turnosYaLlamados.includes(t.id));
+  
+    const siguiente = turnosAcumulados.find((t) => {
+      const yaLlamado = turnosYaLlamados.find((x) => x.id === t.id);
+      return !yaLlamado || yaLlamado.tiempo_espera !== t.tiempo_espera;
+    });
+  
     if (siguiente) {
       setTurnoEnPantalla(siguiente);
-      setTurnosYaLlamados((prev) => [...prev, siguiente.id]);
+      setTurnosYaLlamados((prev) => {
+        // Filtramos el anterior si existe
+        const filtrado = prev.filter((x) => x.id !== siguiente.id);
+        return [...filtrado, { id: siguiente.id, tiempo_espera: siguiente.tiempo_espera }];
+      });
+  
       reproducirVoz(siguiente);
-
+  
       setTimeout(() => {
         setTurnoEnPantalla(null);
       }, 10000);
     }
   }, [turnosAcumulados, turnoEnPantalla, turnosYaLlamados]);
-
+  
   const ultimosLlamados = turnosAcumulados
-    .filter((t) => turnosYaLlamados.includes(t.id))
+    .filter((t) => turnosYaLlamados.some((x) => x.id === t.id))
     .slice(-5)
     .reverse();
+
 
   return (
     <>

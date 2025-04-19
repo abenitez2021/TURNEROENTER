@@ -179,7 +179,7 @@ export default function LlamadorTurnos() {
 
     const diffMin = ahora.diff(emision, "minutes");
 
-    return diffMin ;
+    return diffMin;
   };
 
 
@@ -321,7 +321,6 @@ export default function LlamadorTurnos() {
         id_usuario: usuarioLogueado.id
       });
 
-
       if (res.data?.ok) {
         swal("¡Reasignación exitosa!", { icon: "success", buttons: false, timer: 1500 });
         setTurnoActual(null);
@@ -356,8 +355,8 @@ export default function LlamadorTurnos() {
     try {
       const payload = {
         id: turno.id_turno || turno.id,        // 👈 debe coincidir con el backend
-        box: Number(puntoSeleccionado)         // 👈 asegurar que sea número
-        //id_usuario: usuarioLogueado.id
+        box: Number(puntoSeleccionado),        // 👈 asegurar que sea número
+        id_usuario: usuarioLogueado.id
 
       };
 
@@ -395,6 +394,55 @@ export default function LlamadorTurnos() {
       alertWarningError({
         data: {
           message: error?.response?.data?.message || "Error inesperado al llamar el turno.",
+          level: "error"
+        }
+      });
+    }
+  };
+
+  //Volver a llamar turno 
+  const rellamarTurno = async (turno) => {
+    if (!puntoSeleccionado) {
+      alertWarningError({
+        data: {
+          message: "Debe seleccionar un punto de atención antes de llamar un turno.",
+          level: "warning"
+        }
+      });
+      return;
+    }
+
+    try {
+      const payload = {
+        id: turno.id_turno || turno.id,        // 👈 debe coincidir con el backend
+        box: Number(puntoSeleccionado),        // 👈 asegurar que sea número
+        id_usuario: usuarioLogueado.id
+
+      };
+
+      console.log("📨 Enviando a turnos/llamar:", payload);
+
+      const response = await axios.post("turnos/rellamar", payload);
+
+      console.log("✅ Respuesta del backend:", response.data);
+
+      if (response?.data?.ok) {
+        //mensaje de rellamar exitoso
+
+      } else {
+        alertWarningError({
+          data: {
+            message: response?.data?.message || "No se pudo llamar el turno.",
+            level: "error"
+          }
+        });
+        cargarTurnosPendientes();
+      }
+    } catch (error) {
+      console.error("❌ Error al re llamar turno:", error?.response?.data || error);
+      alertWarningError({
+        data: {
+          message: error?.response?.data?.message || "Error inesperado al re llamar el turno.",
           level: "error"
         }
       });
@@ -802,17 +850,6 @@ export default function LlamadorTurnos() {
             color="primary"
             variant="contained"
           >
-
-
-
-
-
-
-
-
-
-
-
             Reasignar Atención
           </Button>
         </DialogActions>
@@ -946,6 +983,10 @@ export default function LlamadorTurnos() {
         <DialogActions>
           <Button onClick={finalizarTurno} color="secondary" variant="contained">
             Cerrar Atención
+          </Button>
+          <Button onClick={() => rellamarTurno(turnoActual)} color="primary" variant="contained">
+
+            Volver a Llamar
           </Button>
           <Button onClick={() => reasignarTurno(comentario)} color="primary" variant="contained">
             Reasignar Atención
