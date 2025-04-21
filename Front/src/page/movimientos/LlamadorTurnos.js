@@ -39,6 +39,11 @@ import { alertWarningError } from "../../components/Notificaciones";
 import { TextField } from "@material-ui/core";
 import UserContext from "../../utils/user/UserContext";
 import moment from "moment-timezone";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import Logo from "../../assets/images/logo-color.png";
+import { saveAs } from "file-saver";
 
 export default function LlamadorTurnos() {
   const [puntosAtencion, setPuntosAtencion] = useState([]);
@@ -231,6 +236,76 @@ export default function LlamadorTurnos() {
   const [dialogHistorialOpen, setDialogHistorialOpen] = useState(false);
 
 
+
+
+  const exportarHistorialExcel = () => {
+    const hoja = XLSX.utils.json_to_sheet(
+      historialCompleto.map(h => ({
+        Fecha: new Date(h.fecha).toLocaleString(),
+        Estado: h.estado,
+        Comentario: h.comentario,
+        Origen: h.origen,
+        Usuario: h.nombre_usuario || '---',
+        Trámite: h.nombre_tramite || '---'
+      }))
+    );
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Historial Turno");
+    const buffer = XLSX.write(libro, { type: "array", bookType: "xlsx" });
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
+    saveAs(blob, `Historial_Turno_${turnoHistorial?.codigo_turno}.xlsx`);
+  };
+
+  const exportarHistorialPDF = () => {
+    const doc = new jsPDF();
+    const fechaActual = new Date().toISOString().split("T")[0];
+
+    const addHeader = () => {
+      const imageWidth = 40;
+      const imageHeight = 20;
+      const textBackgroundY = 10;
+      const textBackgroundHeight = 20;
+
+      doc.setFillColor(70, 130, 180);
+      doc.rect(55, textBackgroundY, doc.internal.pageSize.getWidth(), textBackgroundHeight, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.text("HISTORIAL DE LA PERSONA CON", 60, 20);
+      doc.text(`CÓDIGO DE TURNO ${turnoHistorial?.codigo_turno}`, 60, 28);
+      doc.addImage(Logo, "PNG", 10, 10, imageWidth, imageHeight);
+    };
+
+    addHeader();
+
+    const tableData = historialCompleto.map(h => [
+      new Date(h.fecha).toLocaleString(),
+      h.estado,
+      h.comentario,
+      h.origen,
+      h.nombre_usuario || '---',
+      h.nombre_tramite || '---'
+    ]);
+
+    doc.autoTable({
+      head: [["Fecha", "Estado", "Comentario", "Origen", "Usuario", "Trámite"]],
+      body: tableData,
+      startY: 40,
+      theme: "grid",
+      styles: { lineColor: [0, 0, 0], cellPadding: 2 },
+      headStyles: { fillColor: [70, 130, 180], textColor: [255, 255, 255], fontStyle: "bold" },
+    });
+
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(0);
+      doc.text(`Página ${i} de ${totalPages}`, 10, doc.internal.pageSize.getHeight() - 10);
+      doc.text(`Fecha de impresión: ${new Date().toLocaleString()}`, 10, doc.internal.pageSize.getHeight() - 5);
+    }
+
+    doc.save(`Historial_Turno_${turnoHistorial?.codigo_turno}_${fechaActual}.pdf`);
+  };
 
   const verHistorialCompleto = async (turnoVista) => {
     try {
@@ -758,6 +833,8 @@ export default function LlamadorTurnos() {
           <Button onClick={() => setTurnoVista(null)} color="primary" variant="contained">
             Cerrar
           </Button>
+
+
         </DialogActions>
 
       </Dialog>
@@ -916,6 +993,12 @@ export default function LlamadorTurnos() {
         <DialogActions>
           <Button onClick={() => setDialogHistorialOpen(false)} color="primary" variant="contained">
             Cerrar
+          </Button>
+          <Button onClick={exportarHistorialExcel} color="default" variant="outlined">
+            Exportar Excel
+          </Button>
+          <Button onClick={exportarHistorialPDF} color="secondary" variant="outlined">
+            Exportar PDF
           </Button>
         </DialogActions>
       </Dialog>

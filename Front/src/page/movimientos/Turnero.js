@@ -247,56 +247,57 @@ export default function Turnero() {
   // 🔧 NUEVA FUNCIÓN: Registrar error de lectura (bloqueante)
   const registrarErrorLectura = async (resultadoLectura, resetearUI = true) => {
     const transactionId = resultadoLectura?.info?.TransactionID;
-
-    // ⛔️ Evitar múltiples registros
+  
     if (transactionId && transactionId === ultimoTransactionIdRef.current) {
       console.log("⛔ Ya registrado:", transactionId);
-      return true; // retornamos true para evitar continuar
+      return true;
     }
-
+  
+    const camposBloqueantes = [
+      { campo: "nombre", label: "nombre" },
+      { campo: "apellido", label: "apellido" },
+      { campo: "documento", label: "número de documento" },
+      { campo: "nacionalidad", label: "nacionalidad" },
+      { campo: "sexo", label: "sexo" },
+    ];
+  
+    const camposNoBloqueantes = [
+      { campo: "foto", label: "foto" },
+      { campo: "imagenFrente", label: "imagen frente" },
+      { campo: "imagenDorso", label: "imagen dorso" },
+      { campo: "tipoDocumento", label: "tipo de documento" },
+      { campo: "fechaNacimiento", label: "fecha de nacimiento" },
+      { campo: "fechaExpiracionDocumento", label: "fecha de expiración del documento" },
+      { campo: "fechaEmision", label: "fecha de emisión" },
+      { campo: "estadoCivil", label: "estado civil" },
+      { campo: "identityCardNumber", label: "número de tarjeta" },
+    ];
+  
     const erroresBloqueantes = [];
     const erroresPermitidos = [];
-    const descripcion = [];
-
-    if (!resultadoLectura?.nombre) {
-      descripcion.push("falta nombre");
-      erroresBloqueantes.push("falta nombre");
-    }
-    if (!resultadoLectura?.apellido) {
-      descripcion.push("falta apellido");
-      erroresBloqueantes.push("falta apellido");
-    }
-    if (!resultadoLectura?.documento) {
-      descripcion.push("falta número de documento");
-      erroresBloqueantes.push("falta número de documento");
-    }
-
-    if (!resultadoLectura?.foto) {
-      descripcion.push("falta foto");
-      erroresPermitidos.push("falta foto");
-    }
-    if (!resultadoLectura?.imagenFrente) {
-      descripcion.push("falta foto frente");
-      erroresPermitidos.push("falta foto frente");
-    }
-    if (!resultadoLectura?.imagenDorso) {
-      descripcion.push("falta foto dorso");
-      erroresPermitidos.push("falta foto dorso");
-    }
-
-    const descripcion_error = descripcion.join(", ");
+  
+    const checkCampo = (obj, campo) =>
+      obj?.[campo] === undefined || obj?.[campo] === null || obj?.[campo] === "";
+  
+    // Analizar campos bloqueantes
+    camposBloqueantes.forEach(({ campo, label }) => {
+      if (checkCampo(resultadoLectura, campo)) erroresBloqueantes.push(`Falta ${label}`);
+    });
+  
+    // Analizar campos no bloqueantes
+    camposNoBloqueantes.forEach(({ campo, label }) => {
+      if (checkCampo(resultadoLectura, campo)) erroresPermitidos.push(`Falta ${label}`);
+    });
+  
+    const descripcion_error = [...erroresBloqueantes, ...erroresPermitidos].join(", ");
     const jsonCompleto = {
       correcto: "S",
       conPayload: "S",
-      payload: {
-        result: resultadoLectura,
-        ok: true,
-        message: "archivo json leido correctamente.",
-      },
+      payload: { result: resultadoLectura, ok: true, message: "archivo json leido correctamente." },
       fechaHora: new Date().toLocaleString("es-PY"),
       idPuesto: resultadoLectura?.info?.DeviceLabelNumber || "1",
     };
-
+  
     const body = {
       idPuesto: parseInt(resultadoLectura?.info?.DeviceLabelNumber || 1),
       jsonCompleto,
@@ -305,35 +306,33 @@ export default function Turnero() {
       imagenFrente: resultadoLectura?.imagenFrente || "",
       imagenDorso: resultadoLectura?.imagenDorso || "",
     };
-
+  
     try {
       await axios.post("http://localhost:7001/api/errores/registrar", body);
       console.log("📤 Error registrado exitosamente:", body);
-      // 🧠 Guardamos este ID para evitar futuros duplicados
       if (transactionId) ultimoTransactionIdRef.current = transactionId;
     } catch (error) {
       console.error("❌ Error al registrar error de lectura:", error);
       alertWarningError("No se pudo registrar el error de lectura.");
     }
-
-    // Si hay errores bloqueantes, mostrar alerta y limpiar
+  
     if (erroresBloqueantes.length > 0 && resetearUI) {
       await swal({
         title: "Lectura incorrecta del documento",
-        text: "Se detectaron datos incompletos. Por favor, vuelva a insertar la cédula",
+        text: "Se detectaron datos esenciales faltantes. Por favor, vuelva a insertar la cédula.",
         icon: "warning",
         button: "Aceptar",
       });
-
+  
       await getLimpiarLecturaFisica();
       setMostrarInstruccionDocumento(true);
       setVisitanteAcceso(inicialValue);
       setVisita(inicialScannerValue);
     }
-
+  
     return erroresBloqueantes.length > 0;
   };
-
+  
 
 
 

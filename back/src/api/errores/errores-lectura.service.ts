@@ -9,17 +9,18 @@ export class ErroresLecturaService {
 
   async obtenerReporteErrores(): Promise<any[]> {
     const query = `
+      
       SELECT 
-       id, DATE_FORMAT(fecha_hora , '%d/%m/%Y %H:%i:%s') as fecha_hora, json_completo , ruta_foto , ruta_frente , ruta_dorso 
-      FROM errores_lectura
-      ORDER BY fecha_hora DESC
+       id, DATE_FORMAT(fecha_hora , '%d/%m/%Y %H:%i:%s') as fecha_hora, descripcion_error, json_completo , ruta_foto , ruta_frente , ruta_dorso 
+        FROM errores_lectura
+        ORDER BY fecha_hora DESC
   
     `;
-    
+
     const result = await this.dataSource.query(query);
     return result;
   }
-  
+
 
   async registrarErrorDesdeFrontend(dto: {
     idPuesto: number;
@@ -57,9 +58,9 @@ export class ErroresLecturaService {
             console.warn(`⚠️ URL vacía para ${nombreArchivo}`);
             return '';
           }
-      
+
           let localPath = '';
-      
+
           if (url.includes('documento-foto')) {
             localPath = 'C:/ENTER/DOCS/Photo.png';
           } else if (url.includes('documento-frente')) {
@@ -70,17 +71,17 @@ export class ErroresLecturaService {
             console.warn(`⚠️ No se reconoce el tipo de imagen en la URL: ${url}`);
             return '';
           }
-      
+
           console.log(`📥 Copiando desde: ${localPath}`);
-      
+
           if (!fs.existsSync(localPath)) {
             console.warn(`❌ Archivo fuente no existe: ${localPath}`);
             return '';
           }
-      
+
           const destino = path.join(destinoBase, nombreArchivo);
           fs.copyFileSync(localPath, destino);
-      
+
           console.log(`✅ Copiado ${nombreArchivo} a ${destino}`);
           return destino;
         } catch (err) {
@@ -88,8 +89,8 @@ export class ErroresLecturaService {
           return '';
         }
       };
-      
-      
+
+
 
       const ruta_foto = copiarImagen(dto.foto, 'foto.png');
       const ruta_frente = copiarImagen(dto.imagenFrente, 'frente.png');
