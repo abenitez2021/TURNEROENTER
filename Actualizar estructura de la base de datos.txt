@@ -1,0 +1,15 @@
+
+--alteramos punto de atención para agregar estas dos columnas para no alterar demasiado la estructura de la base de datos funcional de enter 
+ALTER TABLE puntoatencion
+  ADD COLUMN disponible TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN fecha_disponible DATETIME NULL;
+
+
+
+--- se crea un nuevo tipo de rol o tipo de usuario que tiene acceso a ver la pantalla de cola simple y el panel de atención, el tipo de rol creado es el de Atencion
+
+select * from roles r 
+
+INSERT INTO enter.roles
+(id, nombre, fecha_create, fecha_inactive, estado)
+VALUES(7, 'Atencion', CURRENT_TIMESTAMP, null, 'ACTIVO');
