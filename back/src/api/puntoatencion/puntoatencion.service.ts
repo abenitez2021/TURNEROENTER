@@ -64,4 +64,38 @@ export class PuntoAtencionService {
         }
     }
 
+
+     async marcarDisponible(id_punto: number, id_usuario?: number) {
+    // Podés registrar id_usuario en otra tabla de historial si querés
+    await this.dataSource.query(
+      `UPDATE puntoatencion 
+       SET disponible = 1, fecha_disponible = NOW()
+       WHERE id = ?`,
+      [id_punto],
+    );
+    return { ok: true };
+  }
+
+  async marcarOcupado(id_punto: number) {
+    await this.dataSource.query(
+      `UPDATE puntoatencion 
+       SET disponible = 0, fecha_disponible = NULL
+       WHERE id = ?`,
+      [id_punto],
+    );
+    return { ok: true };
+  }
+
+  async listarDisponiblesEnCola() {
+    const rows = await this.dataSource.query(
+      `SELECT id, nombre, disponible, fecha_disponible
+         FROM puntoatencion
+        WHERE disponible = 1
+        ORDER BY fecha_disponible ASC`,
+    );
+
+    return { ok: true, boxes: rows };
+  }
+
+
 }

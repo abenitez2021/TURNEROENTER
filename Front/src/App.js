@@ -1,3 +1,4 @@
+// App.js
 import React from "react";
 import { useMemo } from "react";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
@@ -15,11 +16,20 @@ import CssBaseline from "@material-ui/core/CssBaseline";
 import Backdrop from "@material-ui/core/Backdrop";
 import CircularProgress from "@material-ui/core/CircularProgress";
 
+const PUBLIC_PATHS = [
+  "/acceder",
+  "/registro-wommers",
+  "/public-turnos",
+  "/public-cola-simple",   // 👈 NUEVA
+  "/movimientos/turnero",  // si querés que el turnero siga sin NavBar
+];
+
 function App({ routes }) {
   const [theme, toggleTheme] = useDarkMode();
   const themeMode = lightTheme;
   const memoizedtoggleTheme = useMemo(() => toggleTheme, [toggleTheme]);
   const [openBackDrop, setOpenBackDrop] = React.useState(false);
+
   const handleClose = () => {
     setOpenBackDrop(false);
   };
@@ -35,11 +45,8 @@ function App({ routes }) {
                 <Helmet>
                   <title>{route.label}</title>
                 </Helmet>
-                {route?.path === "/acceder" ||
-                route?.path === "/registro-wommers" ||
-                route?.path === "/public-turnos" ||
-                
-                route?.path==="/movimientos/turnero" ? (
+
+                {PUBLIC_PATHS.includes(route.path) ? (
                   <AppLayoutPublic
                     route={route}
                     memoizedtoggleTheme={memoizedtoggleTheme}
@@ -57,13 +64,11 @@ function App({ routes }) {
           </Switch>
         </BrowserRouter>
       </UsersProvider>
+
       <Backdrop
         open={openBackDrop}
         onClick={handleClose}
-        style={{
-          zIndex: 2000,
-          color: "#fff",
-        }}
+        style={{ zIndex: 2000, color: "#fff" }}
       >
         <CircularProgress color="primary" />
       </Backdrop>

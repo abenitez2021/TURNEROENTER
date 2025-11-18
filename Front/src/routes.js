@@ -1,3 +1,4 @@
+// routes.js
 import NotFound from "./components/NotFound";
 import Login from "./page/Login";
 import Tablero from "./page/Tablero";
@@ -11,7 +12,7 @@ import ListaPersonasVisitantes from "./page/gestion/ListaPersonasVisitantes";
 import ListaUsuarioGuardias from "./page/gestion/ListaUsuarioGuardias";
 import ListaDependencia from "./page/gestion/ListaDependencia";
 import ListaAccesoVisitantesDos from "./page/movimientos/ListaAccesoVisitantesDos";
-import Contraseña from "./page/movimientos/Contraseña"
+import Contraseña from "./page/movimientos/Contraseña";
 import ListaTramites from "./page/gestion/ListaTramites";
 import NuevoTramite from "./page/gestion/NuevoTramite";
 import Turnero from "./page/movimientos/Turnero";
@@ -21,11 +22,12 @@ import LlamadorTurnos from "./page/movimientos/LlamadorTurnos";
 import PublicTurnos from "./page/PublicTurnos";
 import TableroAtencion from "./page/TableroAtencion";
 import InformeMovimientos from "./page/servicios/InformeMovimientos";
-import InformeGraficoUsuarios from "./page/servicios/InformeGraficoUsuarios"
-import InformeGraficoTramites from "./page/servicios/InformeGraficoTramites"
-import InformeTiemposEspera from "./page/servicios/InformeTiemposEspera"
-
-import ErroresLectura from"./page/movimientos/ErroresLectura"
+import InformeGraficoUsuarios from "./page/servicios/InformeGraficoUsuarios";
+import InformeGraficoTramites from "./page/servicios/InformeGraficoTramites";
+import InformeTiemposEspera from "./page/servicios/InformeTiemposEspera";
+import ErroresLectura from "./page/movimientos/ErroresLectura";
+import LlamadorColaSimple from "./page/movimientos/LlamadorColaSimple";
+import PublicColaSimple from "./page/PublicColaSimple";
 
 export const routes = [
   {
@@ -37,18 +39,24 @@ export const routes = [
     path: "/public-turnos",
     label: "Pantalla Pública",
     component: PublicTurnos,
+    public: true,                 // 👈 usa AppLayoutPublic
+  },
+  {
+    path: "/public-cola-simple",
+    label: "Pantalla Pública Cola Simple",
+    component: PublicColaSimple,
+    public: true,                 // 👈 usa AppLayoutPublic
   },
   {
     path: "/atencion",
-   
     label: "Tablero de Atencion",
     component: TableroAtencion,
   },
-  
   {
-    path: "/acceder", 
+    path: "/acceder",
     label: "INICIAR SESION",
     component: Login,
+    // esta la podés dejar sin public, porque ya manejás login aparte
   },
   {
     path: "/gestion/lista-personas-visitantes",
@@ -84,12 +92,6 @@ export const routes = [
     path: "/gestion/lista-puntoatencion",
     label: "Puntos de Atencion",
     component: ListaPuntos,
-  },
-
-  {
-    path: "/gestion/alta-dependencia",
-    label: "Alta de dependencia",
-    component: NuevaDependencia,
   },
   {
     path: "/gestion/alta-dependencia",
@@ -132,6 +134,11 @@ export const routes = [
     component: ListaAccesoUsuarios,
   },
   {
+    path: "/movimientos/llamador-cola-simple",
+    label: "Panel de Atención",
+    component: LlamadorColaSimple,
+  },
+  {
     path: "/resumen/entradas",
     label: "Entradas",
     component: ListaEntradasDia,
@@ -166,10 +173,12 @@ export const routes = [
     label: "Grafico Tiempos",
     component: InformeTiemposEspera,
   },
-  
   {
     path: "*",
     label: "Error en la página",
     component: NotFound,
+    public: true, // si querés que el 404 sea sin NavBar
   },
 ];
+
+
